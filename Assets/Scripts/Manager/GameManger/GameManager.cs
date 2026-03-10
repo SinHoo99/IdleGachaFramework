@@ -1,7 +1,6 @@
-using TMPro;
+
 using UnityEngine;
 using UnityEngine.Audio;
-using UnityEngine.UI;
 
 public class GameManager : Singleton<GameManager>
 {
@@ -23,10 +22,10 @@ public class GameManager : Singleton<GameManager>
     [Header("Game Objects")]
     [SerializeField] private PoolObject _bulletPrefabs;
 
-
-    #endregion
     private PrefabDataManager _prefabDataManager;
     public bool isQuitting = false;
+
+    #endregion
 
     #region  Public Properties (읽기 전용)
     public UIManager UIManager => _uiManager;

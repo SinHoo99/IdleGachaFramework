@@ -31,7 +31,7 @@ public class PlayerStatusUI : MonoBehaviour
 
     public void BossStatus()
     {
-        BossText.text = $"보스 단계 {GM.BossDataManager.BossRuntimeData.CurrentBossID}";
+        BossText.text = $"보스zzzzz 단계 {GM.BossDataManager.BossRuntimeData.CurrentBossID}";
     }
     private void UpdateCoinUI(int reward)
     {

@@ -17,7 +17,6 @@ public class SoundManager : MonoBehaviour
     private void Start()
     {
         PlayBGM(BGM.BGM);
-
     }
     public AudioMixer AudioMixer;
 
