@@ -5,8 +5,8 @@ public class FruitUIManager : MonoBehaviour
 {
     private GameManager GM => GameManager.Instance;
 
-    public GameObject fruitItemPrefab;
-    public Transform fruitListParent;
+    [SerializeField] private GameObject fruitItemPrefab;
+    [SerializeField] private Transform fruitListParent;
 
     private readonly Dictionary<FruitsID, FruitItem> _fruitUIItems = new();
     private readonly Dictionary<FruitsID, Sprite> _fruitSprites = new();
@@ -24,18 +24,22 @@ public class FruitUIManager : MonoBehaviour
 
     public void UpdateFruitCountsUI(Dictionary<FruitsID, int> fruitCounts)
     {
+        if (fruitCounts == null) return;
+
         foreach (var (fruitID, count) in fruitCounts)
         {
-            if (count > 0) UpdateOrCreateFruitUI(fruitID, count);
-            else RemoveFruitUI(fruitID);
+            if (count > 0)
+                UpdateOrCreateFruitUI(fruitID, count);
+            else
+                RemoveFruitUI(fruitID);
         }
     }
 
     public void UpdateOrCreateFruitUI(FruitsID id, int count)
     {
-        if (_fruitUIItems.ContainsKey(id))
+        if (_fruitUIItems.TryGetValue(id, out var fruitItem))
         {
-            _fruitUIItems[id].UpdateFruit(id, count, GetFruitImage(id));
+            fruitItem.UpdateFruit(id, count, GetFruitImage(id));
         }
         else
         {
@@ -43,51 +47,39 @@ public class FruitUIManager : MonoBehaviour
         }
     }
 
-
     public void CreateFruitUI(FruitsID id, int count)
     {
+        if (GM == null) return;
+
         var fruitData = GM.GetFruitsData(id);
-        if (fruitData == null)
-        {
-            Debug.LogWarning($"과일 데이터({id})를 찾을 수 없습니다.");
-            return;
-        }
+        if (fruitData == null || fruitItemPrefab == null) return;
 
         var fruitItemObject = Instantiate(fruitItemPrefab, fruitListParent);
-        if (!fruitItemObject.TryGetComponent<FruitItem>(out var fruitItem))
+        if (fruitItemObject.TryGetComponent<FruitItem>(out var fruitItem))
         {
-            Debug.LogError("FruitItemPrefab에 FruitItem 스크립트가 연결되지 않았습니다.");
-            Destroy(fruitItemObject);
-            return;
+            fruitItem.UpdateFruit(id, count, fruitData.Image);
+            _fruitUIItems[id] = fruitItem;
         }
-
-        fruitItem.UpdateFruit(id, count, fruitData.Image);
-        _fruitUIItems[id] = fruitItem;
+        else
+        {
+            Debug.LogError($"[FruitUIManager] FruitItem component not found on prefab for {id}.");
+            Destroy(fruitItemObject);
+        }
     }
 
     public void RemoveFruitUI(FruitsID id)
     {
-        if (!_fruitUIItems.ContainsKey(id)) return;
+        if (!_fruitUIItems.TryGetValue(id, out var fruitItem)) return;
 
-        Destroy(_fruitUIItems[id].gameObject);
+        if (fruitItem != null)
+            Destroy(fruitItem.gameObject);
+            
         _fruitUIItems.Remove(id);
-    }
-
-    public void OnFruitSelected(FruitsID selectedFruitID)
-    {
-        var fruitData = GM.GetFruitsData(selectedFruitID);
-        if (fruitData == null)
-        {
-            Debug.LogWarning($"ID {selectedFruitID}에 해당하는 과일 데이터를 찾을 수 없습니다.");
-            return;
-        }
-
-        Debug.Log($"과일 선택됨: {selectedFruitID}");
     }
 
     public Sprite GetFruitImage(FruitsID id)
     {
+        if (GM == null) return null;
         return GM.GetFruitsData(id)?.Image;
     }
-
 }

@@ -2,32 +2,32 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-
-#region 과일 데이터
-[System.Serializable]
+#region Fruit Data
+[Serializable]
 public class FruitsData
 {
-    public FruitsID ID;               // 과일 ID
-    public string Name;               // 과일 이름
-    public FruitsType Type;           // 과일 유형
-    public Sprite Image;              // 과일 이미지
-    public string Description;        // 과일 설명
-    public int Price;                 // 과일 판매 가격
-    public float Probability;         // 과일 등장 확률
-    public float Damage;
-    public PoolObject Prefab;
-    public float AttackSpeed;
+    public FruitsID ID;               // Fruit ID
+    public string Name;               // Fruit Name
+    public FruitsType Type;           // Fruit Type
+    public Sprite Image;              // Fruit Sprite
+    public string Description;        // Fruit Description
+    public int Price;                 // Selling Price
+    public float Probability;         // Spawning Probability
+    public float Damage;              // Damage value
+    public PoolObject Prefab;         // Prefab reference
+    public float AttackSpeed;         // Attack speed value
 }
 #endregion
 
-#region 보스 데이터
-[System.Serializable]
+#region Boss Data
+[Serializable]
 public class BossData
 {
     public BossID ID;
     public int MaxHealth;
     public string AnimationState;
     public int Reward;
+
     public BossData(BossID id, int maxHealth, string animationState, int reward)
     {
         ID = id;
@@ -37,7 +37,7 @@ public class BossData
     }
 }
 
-[System.Serializable]
+[Serializable]
 public class BossRuntimeData
 {
     public BossID CurrentBossID;
@@ -49,11 +49,9 @@ public class BossRuntimeData
         CurrentHealth = currentHealth;
     }
 }
-
 #endregion
 
-
-#region 프리펩 데이터
+#region Serialization Helpers
 [Serializable]
 public class PrefabData
 {
@@ -81,10 +79,7 @@ public class SerializableVector3
         z = vector.z;
     }
 
-    public Vector3 ToVector3()
-    {
-        return new Vector3(x, y, z);
-    }
+    public Vector3 ToVector3() => new Vector3(x, y, z);
 }
 
 [Serializable]
@@ -100,44 +95,32 @@ public class SerializableQuaternion
         w = quaternion.w;
     }
 
-    public Quaternion ToQuaternion()
-    {
-        return new Quaternion(x, y, z, w);
-    }
+    public Quaternion ToQuaternion() => new Quaternion(x, y, z, w);
 }
 #endregion
 
-#region 플레이어 데이터
-[System.Serializable]
+#region Player Data
+[Serializable]
 public class PlayerData
 {
-    [Header("수집된 과일 정보")]
     public Dictionary<FruitsID, CollectedFruitData> Inventory = new();
     public Dictionary<FruitsID, bool> DictionaryCollection = new();
-
-    [Header("마지막 수집 시간")]
     public DateTime LastCollectedTime;
-
-    [Header("플레이어 지갑")]
     public int PlayerCoin = 1000;
 }
-#endregion
 
-#region 현재 채집 데이터
-[System.Serializable]
+[Serializable]
 public class CollectedFruitData
 {
-    public FruitsID ID;     // 과일 ID
-    public int Amount;      // 보유 수량
+    public FruitsID ID;     // Fruit ID
+    public int Amount;      // Collected quantity
 }
 #endregion
 
-
-#region 현재 설정 데이터
-[System.Serializable]
+#region Option Data
+[Serializable]
 public class OptionData
 {
-    [Header("소리")]
     public float BGMVolume;
     public float SFXVolume;
 }

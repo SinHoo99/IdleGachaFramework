@@ -1,26 +1,35 @@
-using UnityEngine;
 using System;
+using UnityEngine;
 
+/// <summary>
+/// Simple health management system for game objects.
+/// </summary>
 public class HealthSystem : MonoBehaviour
 {
-    // 체력 필드
     public float MaxHP;
-    public float CurHP; //현재 체력
+    public float CurHP;
 
     public event Action OnChangeHP;
-
-    // 사망 이벤트
     public event Action OnDeath;
-    public bool IsDead => CurHP == 0;
+
+    public bool IsDead => CurHP <= 0;
+
+    /// <summary>
+    /// Initializes health values.
+    /// </summary>
     public void InitHP(float curHP, float maxHP)
     {
-        CurHP = curHP;
         MaxHP = maxHP;
+        CurHP = Mathf.Clamp(curHP, 0, maxHP);
     }
 
-    // 체력을 감소시키는 메서드
+    /// <summary>
+    /// Reduces current health and triggers events.
+    /// </summary>
     public void TakeDamage(float damage)
     {
+        if (IsDead) return;
+
         CurHP -= damage;
         if (CurHP <= 0)
         {
@@ -30,5 +39,4 @@ public class HealthSystem : MonoBehaviour
 
         OnChangeHP?.Invoke();
     }
-
 }

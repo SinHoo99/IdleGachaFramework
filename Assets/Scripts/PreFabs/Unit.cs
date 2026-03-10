@@ -9,35 +9,28 @@ public class Unit : PoolObject
     [SerializeField] private FruitsID _fruitsID;
     [SerializeField] private Transform _firePoint;
 
-    private Boss Boss;
+    private Boss _boss;
     private Coroutine _shootCoroutine;
 
-
-    [Header("소리 조절")]
-    private float lastSFXTime = 0f;
-    private float sfxCooldown = 0.2f;
+    private float _lastSFXTime = 0f;
+    private float _sfxCooldown = 0.2f;
 
     private void Awake()
     {
         AssignFruitID();
     }
+
     private void OnEnable()
     {
-        if (Boss == null)
-        {
-            Boss = FindObjectOfType<Boss>(); //  하이어라키에서 `Boss` 스크립트가 있는 오브젝트 찾기
-        }
+        InitializeBossReference();
 
-        if ((int)_fruitsID == 0)
+        if (_fruitsID == FruitsID.None)
         {
-            Debug.LogWarning($"{gameObject.name}의 FruitID가 설정되지 않았습니다! 초기화가 필요합니다.");
+            Debug.LogWarning($"[Unit] FruitID for {gameObject.name} is not assigned.");
             return;
         }
 
-        if (_shootCoroutine != null)
-        {
-            StopCoroutine(_shootCoroutine);
-        }
+        if (_shootCoroutine != null) StopCoroutine(_shootCoroutine);
         _shootCoroutine = StartCoroutine(ShootCoroutine());
     }
 
@@ -49,20 +42,28 @@ public class Unit : PoolObject
             _shootCoroutine = null;
         }
     }
-    #region 유닛 ID 할당
 
+    private void InitializeBossReference()
+    {
+        if (_boss == null && GM != null && GM.SpawnManager != null)
+        {
+            _boss = GM.SpawnManager.GetCurrentBoss();
+        }
+
+        if (_boss == null)
+        {
+            _boss = FindFirstObjectByType<Boss>();
+        }
+    }
+
+    #region Fruit ID Assignment
     public void AssignFruitID()
     {
-        if ((int)_fruitsID != 0) return;
+        if (_fruitsID != FruitsID.None) return;
 
         string prefabName = gameObject.name.Replace("(Clone)", "").Trim();
-        Debug.Log($"[AssignFruitID] {gameObject.name}의 PrefabName: {prefabName}");
-
-        if (GM.DataManager.FruitDatas == null)
-        {
-            Debug.LogError("[AssignFruitID] GM.DataManager.FriutDatas가 초기화되지 않았습니다.");
-            return;
-        }
+        
+        if (GM?.DataManager?.FruitDatas == null) return;
 
         foreach (var fruitData in GM.DataManager.FruitDatas.Values)
         {
@@ -73,18 +74,23 @@ public class Unit : PoolObject
             }
         }
 
-        Debug.LogError($"[AssignFruitID] {gameObject.name}의 FruitsID 자동 할당 실패! CSV에서 {prefabName}을 찾을 수 없습니다.");
+        Debug.LogError($"[Unit] Failed to automatically assign FruitID for {gameObject.name}.");
     }
     #endregion
 
-    #region 총알 생성 관련 메서드
+    #region Shooting Logic
     public PoolObject CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
     {
-        PoolObject bullet = GM.ObjectPool.SpawnFromPool(tag);
+        if (GM?.ObjectPool == null) return null;
 
-        float bulletDamage = GetBulletDamage();
-        bullet.ReturnMyComponent<Bullet>().Initialize(position, direction, ownerTag, bulletDamage);
-        return bullet;
+        PoolObject bulletObj = GM.ObjectPool.SpawnFromPool(tag);
+        if (bulletObj != null && bulletObj.TryGetComponent<Bullet>(out var bullet))
+        {
+            float damage = GetBulletDamage();
+            bullet.Initialize(position, direction, ownerTag, damage);
+            return bulletObj;
+        }
+        return null;
     }
 
     private IEnumerator ShootCoroutine()
@@ -92,68 +98,70 @@ public class Unit : PoolObject
         while (true)
         {
             float attackSpeed = GetAttackSpeed();
-            float RandomNum = Random.Range(-0.3f, 0.3f);
-            yield return new WaitForSeconds(attackSpeed + RandomNum);
+            float randomVariance = Random.Range(-0.3f, 0.3f);
+            yield return new WaitForSeconds(Mathf.Max(0.1f, attackSpeed + randomVariance));
             ShootBullet();
         }
     }
 
     private void ShootBullet()
     {
-        if (Boss == null) return; //  보스가 null인지 먼저 체크
+        if (_boss == null) return;
 
-        SpriteRenderer bossSprite = Boss.GetComponentInChildren<SpriteRenderer>();
-        if (bossSprite == null || !bossSprite.enabled)
+        // Check if boss is active and visible
+        if (_boss.TryGetComponent<SpriteRenderer>(out var bossSprite) && (!bossSprite.enabled || !bossSprite.gameObject.activeInHierarchy))
         {
-            return; //  보스 스프라이트가 비활성화되었으면 발사하지 않음
+            return;
         }
 
-        Vector2 direction = (Boss.transform.position - _firePoint.position).normalized;
+        Vector2 direction = (_boss.transform.position - _firePoint.position).normalized;
         CreateBullet(Tag.Bullet, _firePoint.position, direction, gameObject.tag);
-        ShootEffect();
+        
+        PlayShootEffects();
         PlayLimitedSFX();
     }
 
     private float GetBulletDamage()
     {
-        return GM.GetFruitsData(_fruitsID).Damage * 0.1f;
+        var data = GM.GetFruitsData(_fruitsID);
+        return data != null ? data.Damage * 0.1f : 0f;
     }
+
     private float GetAttackSpeed()
     {
-        return GM.GetFruitsData(_fruitsID).AttackSpeed;
+        var data = GM.GetFruitsData(_fruitsID);
+        return data != null ? data.AttackSpeed : 1.0f;
     }
-
     #endregion
 
-    #region 유닛 이펙트 관련
+    #region Visual Effects
+    private void PlayShootEffects()
+    {
+        // Player recoil effect
+        transform.DOKill();
+        transform.DOScale(new Vector3(0.95f, 1.05f, 1f), 0.05f).OnComplete(() => transform.DOScale(Vector3.one, 0.05f));
 
-    private void ShootEffect()
-    {
-        PlayerRecoilEffect();
-        FirePointShakeEffect();
-        FirePointScaleEffect();
-    }
-    private void PlayerRecoilEffect()
-    {
-        transform.DOScale(new Vector3(0.95f, 1.05f, 1f), 0.05f) 
-            .OnComplete(() => transform.DOScale(Vector3.one, 0.05f)); 
-    }
-    private void FirePointShakeEffect()
-    {
-        _firePoint.DOShakePosition(0.2f, 0.1f); // (지속시간, 강도)
-    }
-    private void FirePointScaleEffect()
-    {
-        _firePoint.DOScale(1.2f, 0.05f) 
-            .OnComplete(() => _firePoint.DOScale(1f, 0.05f));
+        if (_firePoint != null)
+        {
+            _firePoint.DOKill();
+            _firePoint.DOShakePosition(0.2f, 0.1f);
+            _firePoint.DOScale(1.2f, 0.05f).OnComplete(() => _firePoint.DOScale(1f, 0.05f));
+        }
     }
 
     private void PlayLimitedSFX()
     {
-        if (Time.time - lastSFXTime < sfxCooldown) return;
-        lastSFXTime = Time.time;
+        if (Time.time - _lastSFXTime < _sfxCooldown) return;
+        _lastSFXTime = Time.time;
 
-        GM.PlaySFX(SFX.Shoot);
+        if (GM != null) GM.PlaySFX(SFX.Shoot);
     }
     #endregion
+
+    public override void OnReturnToPool()
+    {
+        base.OnReturnToPool();
+        transform.DOKill();
+        if (_firePoint != null) _firePoint.DOKill();
+    }
 }

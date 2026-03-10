@@ -3,44 +3,45 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    [SerializeField] private InventoryManager _inventoryManager; // Inspector에서 할당
-    [SerializeField] private DictionaryManager  _dictionaryManager;
+    [SerializeField] private InventoryManager _inventoryManager;
+    [SerializeField] private DictionaryManager _dictionaryManager;
+    
     public InventoryManager InventoryManager => _inventoryManager;
-    public  DictionaryManager DictionaryManager => _dictionaryManager;
+    public DictionaryManager DictionaryManager => _dictionaryManager;
 
-    private GameObject currentActiveUI = null;
-    private Vector3 originalPosition; // 기존 UI의 원래 위치 저장
-    private float frontZ = -5f;  // UI가 활성화될 때 가장 앞으로 이동할 Z값
+    private GameObject _currentActiveUI = null;
+    private float _frontZ = -5f;
 
     private void Start()
     {
-        _inventoryManager.TriggerInventoryUpdate(); // UI 초기화
+        if (_inventoryManager != null)
+            _inventoryManager.TriggerInventoryUpdate();
     }
 
+    /// <summary>
+    /// Animates a UI object into view or hides it if already visible.
+    /// </summary>
     public void OnDoTween(GameObject uiObject, Vector3 originalPos)
     {
+        if (uiObject == null) return;
+
         bool isVisible = uiObject.activeSelf;
 
         if (!isVisible)
         {
-            if (currentActiveUI != null && currentActiveUI != uiObject)
+            if (_currentActiveUI != null && _currentActiveUI != uiObject)
             {
-                HideUI(currentActiveUI);
+                HideUI(_currentActiveUI);
             }
 
-            // 기존 UI의 원래 위치 저장
-            originalPosition = uiObject.transform.position;
+            // Set to front Z position
+            uiObject.transform.position = new Vector3(originalPos.x, originalPos.y, _frontZ);
 
-            // Z값을 조정하여 가장 앞쪽으로 배치
-            uiObject.transform.position = new Vector3(originalPosition.x, originalPosition.y, frontZ);
-
-            // 화면 정중앙의 Y좌표 계산
             float targetPositionY = GetUIScreenCenterY(uiObject);
 
-            // UI 활성화 후 올라가는 애니메이션
             uiObject.SetActive(true);
             uiObject.transform.DOMoveY(targetPositionY, 0.5f).SetEase(Ease.OutCubic);
-            currentActiveUI = uiObject;
+            _currentActiveUI = uiObject;
         }
         else
         {
@@ -50,36 +51,26 @@ public class UIManager : MonoBehaviour
 
     private void HideUI(GameObject uiObject)
     {
-        IShowAndHide uiScript = uiObject.GetComponent<IShowAndHide>();
-        if (uiScript is SellingUI sellingUI)
+        if (uiObject == null) return;
+
+        if (uiObject.TryGetComponent<IShowAndHide>(out var uiScript))
         {
-            uiObject.transform.DOMoveY(sellingUI.OriginalPosition.y, 0.5f)
+            uiObject.transform.DOMoveY(uiScript.OriginalPosition.y, 0.5f)
                 .SetEase(Ease.InCubic)
                 .OnComplete(() =>
                 {
                     uiObject.SetActive(false);
-                    ResetZPosition(uiObject);
+                    // Reset Z position using OriginalPosition
+                    uiObject.transform.position = uiScript.OriginalPosition;
                 });
         }
-        else if (uiScript is DictionaryUI dictionaryUI)
+        else
         {
-            uiObject.transform.DOMoveY(dictionaryUI.OriginalPosition.y, 0.5f)
-                .SetEase(Ease.InCubic)
-                .OnComplete(() =>
-                {
-                    uiObject.SetActive(false);
-                    ResetZPosition(uiObject);
-                });
+            uiObject.SetActive(false);
         }
 
-        if (currentActiveUI == uiObject)
-            currentActiveUI = null;
-    }
-
-    private void ResetZPosition(GameObject uiObject)
-    {
-        // UI를 원래 위치로 복구 (Z값도 초기 위치로 되돌림)
-        uiObject.transform.position = new Vector3(originalPosition.x, originalPosition.y, originalPosition.z);
+        if (_currentActiveUI == uiObject)
+            _currentActiveUI = null;
     }
 
     private float GetUIScreenCenterY(GameObject uiObject)
@@ -87,7 +78,6 @@ public class UIManager : MonoBehaviour
         Canvas canvas = uiObject.GetComponentInParent<Canvas>();
         if (canvas == null)
         {
-            Debug.LogWarning("Canvas not found!");
             return Screen.height * 0.5f;
         }
 
@@ -97,10 +87,8 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            // Canvas가 Screen Space - Camera 또는 World일 경우
-            RectTransform canvasRect = canvas.GetComponent<RectTransform>();
             Vector3 screenCenter = new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0);
-            Vector3 worldCenter = Camera.main.ScreenToWorldPoint(screenCenter);
+            Vector3 worldCenter = Camera.main != null ? Camera.main.ScreenToWorldPoint(screenCenter) : Vector3.zero;
             return worldCenter.y;
         }
     }

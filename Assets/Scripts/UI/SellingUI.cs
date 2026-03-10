@@ -1,23 +1,30 @@
 using UnityEngine;
-using DG.Tweening;
 
 public class SellingUI : MonoBehaviour, IShowAndHide
 {
-    public Vector3 OriginalPosition { get; private set; }
+    [SerializeField] private Vector3 _originalPosition;
+    public Vector3 OriginalPosition => _originalPosition;
+
     private GameManager GM => GameManager.Instance;
 
     private void Awake()
     {
-        OriginalPosition = transform.position;
+        _originalPosition = transform.position;
     }
+
     private void Start()
     {
-        GM.UIManager.InventoryManager.TriggerInventoryUpdate();
+        if (GM != null && GM.UIManager?.InventoryManager != null)
+            GM.UIManager.InventoryManager.TriggerInventoryUpdate();
     }
 
     public void ShowAndHide()
     {
-        GM.PlaySFX(SFX.Click);
-        GM.UIManager.OnDoTween(this.gameObject, OriginalPosition);
+        if (GM != null)
+        {
+            GM.PlaySFX(SFX.Click);
+            if (GM.UIManager != null)
+                GM.UIManager.OnDoTween(gameObject, _originalPosition);
+        }
     }
 }

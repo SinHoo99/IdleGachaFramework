@@ -1,32 +1,32 @@
-using UnityEngine;
 using System;
+using System.Collections;
+using UnityEngine;
 using DG.Tweening;
 
 public class Boss : MonoBehaviour
 {
     private GameManager GM => GameManager.Instance;
-    private BossRuntimeData BossRuntimeData => GM.BossDataManager.BossRuntimeData; // 현재 보스의 동적 데이터 저장
+    private BossRuntimeData RuntimeData => GM?.BossDataManager?.BossRuntimeData;
 
-    public BossData BossData; // 현재 보스의 기본 정보
-    private SpriteRenderer spriteRenderer;
-    private Animator animator;
-    private BoxCollider2D boxCollider;
+    [SerializeField] private HealthStatusUI healthStatusUI;
+    [SerializeField] private float sfxCooldown = 2f;
 
-    public HealthSystem HealthSystem;
+    private SpriteRenderer _spriteRenderer;
+    private Animator _animator;
+    private BoxCollider2D _boxCollider;
+    private HealthSystem _healthSystem;
+
     public event Action OnChangeBossHP;
     public static event Action<int> OnBossDefeated;
-    [SerializeField] private HealthStatusUI HealthStatusUI;
 
-    [Header("소리 조절")]
-    private float lastSFXTime = 0f;
-    private float sfxCooldown = 2f;
+    private float _lastSFXTime = 0f;
 
     private void Awake()
     {
-        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-        animator = GetComponentInChildren<Animator>();
-        boxCollider = GetComponent<BoxCollider2D>();
-        HealthSystem = GetComponent<HealthSystem>();
+        _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        _animator = GetComponentInChildren<Animator>();
+        _boxCollider = GetComponent<BoxCollider2D>();
+        _healthSystem = GetComponent<HealthSystem>();
     }
 
     private void Start()
@@ -36,26 +36,52 @@ public class Boss : MonoBehaviour
 
     private void OnEnable()
     {
-        HealthStatusUI.SetStatusEvent();
+        if (healthStatusUI != null) healthStatusUI.SetStatusEvent();
+        
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath += OnDie;
+            _healthSystem.OnChangeHP += HandleChangeHP;
+        }
+        
         Respawn();
     }
 
-    ///  보스 초기화 로직을 하나로 정리
-    private void InitializeBoss()
+    private void OnDisable()
     {
-        BossData = GM.GetBossData(GM.BossDataManager.BossRuntimeData.CurrentBossID);
-        // 체력 시스템 설정
-        InitHealth();
-        HealthSystem.OnDeath -= OnDie;
-        HealthSystem.OnDeath += OnDie;
+        if (_healthSystem != null)
+        {
+            _healthSystem.OnDeath -= OnDie;
+            _healthSystem.OnChangeHP -= HandleChangeHP;
+        }
+    }
 
-        HealthSystem.OnChangeHP -= HandleChangeHP;
-        HealthSystem.OnChangeHP += HandleChangeHP;
+    public void InitializeBoss()
+    {
+        if (GM == null || RuntimeData == null) return;
 
-        // UI 및 상태 초기화
-        InitBossHPBar();
+        var bossData = GM.GetBossData(RuntimeData.CurrentBossID);
+        if (bossData == null) return;
+
+        // Initialize Health
+        if (RuntimeData.CurrentHealth <= 0)
+            RuntimeData.CurrentHealth = bossData.MaxHealth;
+
+        if (_healthSystem != null)
+        {
+            _healthSystem.InitHP(RuntimeData.CurrentHealth, bossData.MaxHealth);
+        }
+
+        // Initialize UI
+        if (healthStatusUI != null)
+        {
+            healthStatusUI.UpdateHPStatus();
+            healthStatusUI.ShowSlider();
+        }
+
         UpdateBossAnimation();
-        GM.PlayerStatusUI.BossStatus();
+        
+        if (GM.PlayerStatusUI != null) GM.PlayerStatusUI.BossStatus();
     }
 
     private void HandleChangeHP()
@@ -65,118 +91,101 @@ public class Boss : MonoBehaviour
 
     private void OnDie()
     {
+        if (GM == null || RuntimeData == null) return;
 
-        int reward = GM.GetBossReward(BossRuntimeData.CurrentBossID);
-        GM.PlayerDataManager.NowPlayerData.PlayerCoin += reward;
+        int reward = GM.GetBossReward(RuntimeData.CurrentBossID);
+        if (GM.PlayerDataManager?.NowPlayerData != null)
+            GM.PlayerDataManager.NowPlayerData.PlayerCoin += reward;
+
         OnBossDefeated?.Invoke(reward);
-        spriteRenderer.enabled = false;
-        boxCollider.enabled = false;
-        HealthStatusUI.HideSlider();
-        var nextBossID = GetNextBossID();
-        BossRuntimeData.CurrentBossID = nextBossID;
-        Invoke(nameof(Respawn), 3f);
+        
+        _spriteRenderer.enabled = false;
+        _boxCollider.enabled = false;
+        
+        if (healthStatusUI != null) healthStatusUI.HideSlider();
+
+        // Prepare next boss
+        RuntimeData.CurrentBossID = GetNextBossID();
+        
+        StartCoroutine(RespawnCoroutine());
+    }
+
+    private IEnumerator RespawnCoroutine()
+    {
+        yield return new WaitForSeconds(3f);
+        Respawn();
     }
 
     private void Respawn()
     {
         InitializeBoss();
-        spriteRenderer.enabled = true;
-        boxCollider.enabled = true;
+        _spriteRenderer.enabled = true;
+        _boxCollider.enabled = true;
     }
 
     public void TakeDamage(float damage)
     {
-        if (HealthSystem != null)
+        if (_healthSystem != null && !_healthSystem.IsDead)
         {
-            if (HealthSystem.CurHP <= 0)
-            {
-                Debug.Log("[Boss] 이미 사망한 상태입니다. OnDeath 중복 호출 방지!");
-                return; // 이미 죽은 상태라면 중복 호출 방지
-            }
-
-            HealthSystem.TakeDamage(damage);
-            BossRuntimeData.CurrentHealth = HealthSystem.CurHP; // 체력 갱신
+            _healthSystem.TakeDamage(damage);
+            if (RuntimeData != null) RuntimeData.CurrentHealth = _healthSystem.CurHP;
+            
             TakeDamageEffect();
         }
     }
 
     private BossID GetNextBossID()
     {
-        return (BossRuntimeData.CurrentBossID < BossID.E) ? BossRuntimeData.CurrentBossID + 1 : BossID.A;
+        if (RuntimeData == null) return BossID.A;
+        return (RuntimeData.CurrentBossID < BossID.E) ? RuntimeData.CurrentBossID + 1 : BossID.A;
     }
 
     public void UpdateBossAnimation()
     {
-        animator.SetTrigger(BossRuntimeData.CurrentBossID.ToString());
-    }
-    #region Boss Health 관련
-    private void InitBossHPBar()
-    {
-        HealthStatusUI.UpdateHPStatus();
-        HealthStatusUI.ShowSlider();
+        if (_animator != null && RuntimeData != null)
+            _animator.SetTrigger(RuntimeData.CurrentBossID.ToString());
     }
 
-    private void InitHealth()
-    {
-        BossData = GM.GetBossData(BossRuntimeData.CurrentBossID);
-
-        if (BossRuntimeData.CurrentHealth <= 0)
-        {
-            BossRuntimeData.CurrentHealth = BossData.MaxHealth;
-        }
-
-        if (HealthSystem != null)
-        {
-            HealthSystem.MaxHP = BossData.MaxHealth;
-            HealthSystem.InitHP(BossRuntimeData.CurrentHealth, BossData.MaxHealth);
-        }
-    }
-
-    public void ResetBossHealth()
-    {
-        BossRuntimeData.CurrentHealth = BossData.MaxHealth;
-
-        if (HealthSystem != null)
-        {
-            HealthSystem.MaxHP = BossData.MaxHealth;
-            HealthSystem.InitHP(BossRuntimeData.CurrentHealth, BossData.MaxHealth);
-        }
-        HealthStatusUI.UpdateHPStatus();
-        GM.PlayerStatusUI.BossStatus();
-    }
-    #endregion
     public void ResetBossData()
     {
-        BossData = GM.GetBossData(BossRuntimeData.CurrentBossID);
+        if (RuntimeData == null) return;
 
-        ResetBossHealth();
-        UpdateBossAnimation();
-
-        Debug.Log($"[Boss] 보스 데이터가 초기화되었습니다: {BossRuntimeData.CurrentBossID}, 체력: {BossRuntimeData.CurrentHealth}");
+        var bossData = GM.GetBossData(RuntimeData.CurrentBossID);
+        if (bossData != null)
+        {
+            RuntimeData.CurrentHealth = bossData.MaxHealth;
+            InitializeBoss();
+        }
+        
+        Debug.Log($"[Boss] Data reset for {RuntimeData.CurrentBossID}.");
     }
 
-    #region 보스 타격 효과 관련
+    #region Visual Effects
     private void TakeDamageEffect()
     {
         ColorEffect();
         ScaleEffect();
-        //PlayLimitedSFX();
+        PlayLimitedSFX();
     }
+
     private void ColorEffect()
     {
-        spriteRenderer.DOColor(Color.red, 0.1f).OnComplete(() => spriteRenderer.DOColor(Color.white, 0.1f));
+        _spriteRenderer.DOKill();
+        _spriteRenderer.DOColor(Color.red, 0.1f).OnComplete(() => _spriteRenderer.DOColor(Color.white, 0.1f));
     }
+
     private void ScaleEffect()
     {
+        transform.DOKill();
         transform.DOScale(new Vector3(1.2f, 0.8f, 1f), 0.1f).OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
     }
 
     private void PlayLimitedSFX()
     {
-        if (Time.time - lastSFXTime < sfxCooldown) return;
-        lastSFXTime = Time.time;
+        if (Time.time - _lastSFXTime < sfxCooldown) return;
+        _lastSFXTime = Time.time;
 
-        GM.PlaySFX(SFX.TakeDamage);
+        if (GM != null) GM.PlaySFX(SFX.TakeDamage);
     }
     #endregion
 }

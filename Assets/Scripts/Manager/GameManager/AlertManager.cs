@@ -1,25 +1,31 @@
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
 public class AlertManager : MonoBehaviour
 {
-    public GameObject AlertObject;
-    public TextMeshProUGUI AlertText;
+    [SerializeField] private GameObject alertObject;
+    [SerializeField] private TextMeshProUGUI alertText;
+    
     private Coroutine _alertCoroutine;
 
+    /// <summary>
+    /// Displays an alert message for a short duration.
+    /// </summary>
     public void ShowAlert(string msg)
     {
-        AlertText.text = msg;
-        AlertObject.SetActive(true);
+        if (alertText == null || alertObject == null) return;
+
+        alertText.text = msg;
+        alertObject.SetActive(true);
 
         if (_alertCoroutine != null) StopCoroutine(_alertCoroutine);
         _alertCoroutine = StartCoroutine(AlertCo());
     }
+
     private IEnumerator AlertCo()
     {
         yield return new WaitForSecondsRealtime(2f);
-        AlertObject.SetActive(false);
+        alertObject.SetActive(false);
     }
 }

@@ -5,48 +5,63 @@ using Newtonsoft.Json;
 
 public class SaveManager : MonoBehaviour
 {
+    private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
+    {
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+        Formatting = Formatting.Indented
+    };
+
+    /// <summary>
+    /// Saves data to a JSON file named after the type T.
+    /// </summary>
     public void SaveData<T>(T data)
     {
-        string path = Path.Combine(Application.persistentDataPath, $"{typeof(T).Name}.json");
+        if (data == null) return;
+
+        string path = GetSavePath<T>();
         try
         {
-            JsonSerializerSettings settings = new JsonSerializerSettings
-            {
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore // 순환 참조 무시
-            };
-
-            string jsonData = JsonConvert.SerializeObject(data, Formatting.Indented);
+            string jsonData = JsonConvert.SerializeObject(data, JsonSettings);
             File.WriteAllText(path, jsonData);
+            Debug.Log($"[SaveManager] Data saved to: {path}");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] 데이터 저장 실패: {ex.Message}");
+            Debug.LogError($"[SaveManager] Failed to save data: {ex.Message}");
         }
     }
 
+    /// <summary>
+    /// Tries to load data from a JSON file.
+    /// </summary>
     public bool TryLoadData<T>(out T data)
     {
-        string path = Path.Combine(Application.persistentDataPath, $"{typeof(T).Name}.json");
+        string path = GetSavePath<T>();
         if (File.Exists(path))
         {
             try
             {
                 string jsonData = File.ReadAllText(path);
-                data = JsonConvert.DeserializeObject<T>(jsonData);
-                Debug.Log($"[SaveManager] 데이터 로드 성공: {path}");
-                return true;
+                data = JsonConvert.DeserializeObject<T>(jsonData, JsonSettings);
+                Debug.Log($"[SaveManager] Data loaded from: {path}");
+                return data != null;
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SaveManager] 데이터 로드 실패: {ex.Message}");
+                Debug.LogError($"[SaveManager] Failed to load data: {ex.Message}");
             }
         }
         else
         {
-            Debug.LogWarning($"[SaveManager] 파일이 존재하지 않습니다: {path}");
+            Debug.LogWarning($"[SaveManager] Save file not found: {path}");
         }
 
-        data = default(T);
+        data = default;
         return false;
+    }
+
+    private string GetSavePath<T>()
+    {
+        return Path.Combine(Application.persistentDataPath, $"{typeof(T).Name}.json");
     }
 }

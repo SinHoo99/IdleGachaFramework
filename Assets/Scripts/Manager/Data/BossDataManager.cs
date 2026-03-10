@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 public class BossDataManager : MonoBehaviour
@@ -13,83 +12,70 @@ public class BossDataManager : MonoBehaviour
         LoadAllData();
     }
 
-    #region  보스 데이터 저장 및 로드
-
-    //  보스의 정적 데이터 로드 (CSV에서 가져오기)
+    #region Save/Load Data
     public bool LoadBossData(BossID bossID)
     {
+        if (GM == null) return false;
+
         BossData bossData = GM.GetBossData(bossID);
         if (bossData != null)
         {
             StaticBossData = bossData;
-          //  Debug.Log($"[BossDataManager] 보스 데이터 로드 완료: ID={bossID}");
             return true;
         }
-        else
+
+        Debug.LogWarning($"[BossDataManager] Boss data for {bossID} not found. Falling back to default (A).");
+        var defaultBoss = GM.GetBossData(BossID.A);
+        if (defaultBoss != null)
         {
-            Debug.LogWarning($"[BossDataManager] 보스 데이터를 찾을 수 없습니다. 기본값을 설정합니다. BossID: {bossID}");
-            StaticBossData = new BossData(BossID.A, GM.GetBossData(BossID.A).MaxHealth, GM.GetBossData(BossID.A).AnimationState, GM.GetBossData(BossID.A).Reward); // 기본값 설정
-            return false;
+            StaticBossData = new BossData(BossID.A, defaultBoss.MaxHealth, defaultBoss.AnimationState, defaultBoss.Reward);
         }
+        return false;
     }
 
-    //  보스의 동적 데이터 (현재 체력 & ID) 저장
     public void SaveBossRuntimeData()
     {
-        if (BossRuntimeData == null)
-        {
-            Debug.LogWarning("[BossDataManager] 저장할 BossRuntimeData가 없습니다.");
-            return;
-        }
-
+        if (BossRuntimeData == null || GM?.SaveManager == null) return;
         GM.SaveManager.SaveData(BossRuntimeData);
     }
 
-    //  보스의 동적 데이터 (현재 체력 & ID) 로드
     public bool LoadBossRuntimeData()
     {
-        if (GM.SaveManager.TryLoadData(out BossRuntimeData data))
+        if (GM?.SaveManager != null && GM.SaveManager.TryLoadData(out BossRuntimeData data))
         {
             BossRuntimeData = data;
-         //   Debug.Log($"[BossDataManager] 보스 런타임 데이터 로드 완료: ID={BossRuntimeData.CurrentBossID}, 체력={BossRuntimeData.CurrentHealth}");
             return true;
         }
-        else
-        {
-            Debug.LogWarning("[BossDataManager] 보스 런타임 데이터가 없어서 기본값을 설정합니다.");
-            BossRuntimeData = new BossRuntimeData(BossID.A, StaticBossData.MaxHealth); // 기본값 설정
-            return false;
-        }
+
+        Debug.LogWarning("[BossDataManager] Boss runtime data not found. Initializing with defaults.");
+        BossRuntimeData = new BossRuntimeData(BossID.A, 100f);
+        return false;
     }
-
-    #endregion
-
-    #region  전체 데이터 로드
 
     public bool LoadAllData()
     {
         bool runtimeLoaded = LoadBossRuntimeData();
-
-        //  `BossRuntimeData`가 정상적으로 로드되지 않으면 기본값 설정
-        if (!runtimeLoaded || BossRuntimeData == null)
-        {
-            BossRuntimeData = new BossRuntimeData(BossID.A, 100);
-            Debug.LogWarning("[BossDataManager] BossRuntimeData가 없어서 기본값으로 초기화되었습니다.");
-        }
-
-        bool bossDataLoaded = LoadBossData(BossRuntimeData.CurrentBossID);
+        
+        // Ensure StaticBossData is also loaded based on current runtime ID
+        bool bossDataLoaded = LoadBossData(BossRuntimeData?.CurrentBossID ?? BossID.A);
+        
         return runtimeLoaded && bossDataLoaded;
     }
-
     #endregion
 
-    #region  데이터 삭제
-
+    #region Data Modification
     public void DestroyData()
     {
-        BossRuntimeData = new BossRuntimeData(BossID.A, 100);
-        StaticBossData = new BossData(BossID.A, GM.GetBossData(BossID.A).MaxHealth, GM.GetBossData(BossID.A).AnimationState, GM.GetBossData(BossID.A).Reward); // 기본값 설정
-        GM.SaveManager.SaveData(BossRuntimeData);
+        if (GM == null) return;
+
+        var defaultBoss = GM.GetBossData(BossID.A);
+        if (defaultBoss != null)
+        {
+            BossRuntimeData = new BossRuntimeData(BossID.A, defaultBoss.MaxHealth);
+            StaticBossData = new BossData(BossID.A, defaultBoss.MaxHealth, defaultBoss.AnimationState, defaultBoss.Reward);
+            GM.SaveManager.SaveData(BossRuntimeData);
+        }
+
         if (GM.SpawnManager != null)
         {
             Boss boss = GM.SpawnManager.GetCurrentBoss();
@@ -99,8 +85,7 @@ public class BossDataManager : MonoBehaviour
             }
         }
 
-        Debug.Log("[BossDataManager] 보스 데이터 초기화 완료.");
+        Debug.Log("[BossDataManager] Boss data reset completed.");
     }
-
     #endregion
 }

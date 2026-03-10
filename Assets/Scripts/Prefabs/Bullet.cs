@@ -1,62 +1,70 @@
-using System.Collections;
 using UnityEngine;
-using static UnityEditor.Experimental.GraphView.GraphView;
 
 public class Bullet : PoolObject
 {
     private GameManager GM => GameManager.Instance;
-    private Rigidbody2D rb;
-    private Animator animator;
+    private Rigidbody2D _rb;
+    private Animator _animator;
 
-    private string bulletOwnerTag;
-    private float damage;
+    private string _ownerTag;
+    private float _damage;
+
     private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
+        _rb = GetComponent<Rigidbody2D>();
+        _animator = GetComponent<Animator>();
     }
 
-    #region ºÒ·¿ Ãæµ¹
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if ((collision.gameObject.layer == LayerMask.NameToLayer(Layer.Boss)))
+        // Hit Boss
+        if (collision.gameObject.layer == LayerMask.NameToLayer(Layer.Boss))
         {
-            Boss boss = collision.GetComponent<Boss>();
-            boss.TakeDamage(damage);
-            BulletObjectreturn();
+            if (collision.TryGetComponent<Boss>(out var boss))
+            {
+                boss.TakeDamage(_damage);
+                ReturnToPool();
+            }
         }
     }
-    #endregion
 
-    public void BulletObjectreturn( )
+    /// <summary>
+    /// Returns the bullet to the object pool.
+    /// </summary>
+    public void ReturnToPool()
     {
-        gameObject.SetActive(false);
+        if (GM != null && GM.ObjectPool != null)
+        {
+            GM.ObjectPool.ReturnObject(Tag.Bullet, this);
+        }
+        else
+        {
+            gameObject.SetActive(false);
+        }
     }
+
+    /// <summary>
+    /// Initializes bullet properties when spawned from pool.
+    /// </summary>
     public void Initialize(Vector2 position, Vector2 direction, string ownerTag, float bulletDamage)
     {
-        bulletOwnerTag = ownerTag;
-        damage = bulletDamage;
+        _ownerTag = ownerTag;
+        _damage = bulletDamage;
+        
         transform.position = position;
+        
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
 
-        rb.velocity = direction.normalized * 10f;
-    }
-      
-  /*  private void HitParticle()
-    {
-        ParticleSystem.transform.position = transform.position;
-        ParticleSystem.MainModule main = ParticleSystem.main;
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 2f);
-        main.gravityModifier = 0.5f; 
-        ParticleSystem.Play();   
+        if (_rb != null)
+        {
+            _rb.velocity = direction.normalized * 10f;
+        }
     }
 
-    private void FireParticle()
+    public override void OnReturnToPool()
     {
-        ParticleSystem.transform.position = transform.position;
-        ParticleSystem.MainModule main = ParticleSystem.main;
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 2f);
-        ParticleSystem.Play();
-    }*/
+        base.OnReturnToPool();
+        if (_rb != null) _rb.velocity = Vector2.zero;
+    }
 }

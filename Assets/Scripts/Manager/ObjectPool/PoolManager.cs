@@ -1,41 +1,60 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 public class PoolManager : MonoBehaviour
 {
     private GameManager GM => GameManager.Instance;
-    protected ObjectPool ObjectPool => GM.ObjectPool;
+    protected ObjectPool ObjectPool => GM != null ? GM.ObjectPool : null;
 
-    #region 오브젝트풀 초기화
+    #region Object Pool Initialization Logic
+    /// <summary>
+    /// Initializes object pools based on game data.
+    /// </summary>
     public void AddObjectPool()
     {
-        ObjectPool.AddObjectPool(Tag.Apple, GM.GetFruitsData(FruitsID.Apple).Prefab, 20);
-        ObjectPool.AddObjectPool(Tag.Banana, GM.GetFruitsData(FruitsID.Banana).Prefab, 20);
-        ObjectPool.AddObjectPool(Tag.Carrot, GM.GetFruitsData(FruitsID.Carrot).Prefab, 20);
-        ObjectPool.AddObjectPool(Tag.Melon, GM.GetFruitsData(FruitsID.Melon).Prefab, 20);
-        ObjectPool.AddObjectPool(Tag.Bullet, GM.GetBullet(), 50);
+        if (ObjectPool == null || GM == null || GM.DataManager == null) return;
+
+        // Automatically add pools for all FruitsID enums defined in data
+        foreach (FruitsID id in Enum.GetValues(typeof(FruitsID)))
+        {
+            if (id == FruitsID.None) continue;
+
+            var fruitData = GM.GetFruitsData(id);
+            if (fruitData != null && fruitData.Prefab != null)
+            {
+                ObjectPool.AddObjectPool(id.ToString(), fruitData.Prefab, 20);
+            }
+        }
+
+        // Add bullet pool
+        if (GM.GetBullet() != null)
+        {
+            ObjectPool.AddObjectPool(Tag.Bullet, GM.GetBullet(), 50);
+        }
     }
 
+    /// <summary>
+    /// Spawns a unit prefab from the object pool.
+    /// </summary>
     public PoolObject CreateUnitPrefabs(string tag)
     {
+        if (ObjectPool == null) return null;
+
         PoolObject fruit = ObjectPool.SpawnFromPool(tag);
         if (fruit == null)
         {
-            Debug.LogError($"[PoolManager] {tag} 프리팹을 풀에서 가져오지 못했습니다.");
+            Debug.LogError($"[PoolManager] Failed to spawn {tag} from object pool.");
             return null;
         }
-        Unit unit = fruit.ReturnMyComponent<Unit>();
 
-        if (unit == null)
+        // Ensure it's a Unit component (optional verification)
+        if (fruit.TryGetComponent<Unit>(out var unit))
         {
-            Debug.LogError($"[CreatePrefabs] {fruit.gameObject.name} 오브젝트에 Unit 컴포넌트가 없습니다!");
+            return fruit;
         }
+
+        Debug.LogWarning($"[PoolManager] Spawned {tag} object does not have a Unit component.");
         return fruit;
     }
-
-
-
     #endregion
 }

@@ -5,20 +5,27 @@ public class PrefabDataManager
 {
     private GameManager GM => GameManager.Instance;
 
+    /// <summary>
+    /// Saves the current state of active pooled objects to a JSON file.
+    /// </summary>
     public void SavePrefabData()
     {
-        List<PrefabData> prefabDataList = new List<PrefabData>();
+        if (GM == null || GM.ObjectPool == null || GM.SaveManager == null) return;
+
+        var prefabDataList = new List<PrefabData>();
+        int unitLayer = LayerMask.NameToLayer(Layer.Unit);
 
         foreach (var pool in GM.ObjectPool.PoolDictionary.Values)
         {
-            int unitLayer = LayerMask.NameToLayer(Layer.Unit);
-
             foreach (var obj in pool)
             {
-                if (obj.gameObject.activeInHierarchy && obj.gameObject.layer == unitLayer)
+                if (obj != null && obj.gameObject.activeInHierarchy && obj.gameObject.layer == unitLayer)
                 {
+                    // Remove "(Clone)" suffix from name for consistency
+                    string cleanName = obj.name.Replace("(Clone)", "").Trim();
+                    
                     prefabDataList.Add(new PrefabData(
-                        obj.name.Replace("(Clone)", "").Trim(),
+                        cleanName,
                         obj.transform.position,
                         obj.transform.rotation
                     ));
@@ -29,14 +36,18 @@ public class PrefabDataManager
         GM.SaveManager.SaveData(prefabDataList);
     }
 
+    /// <summary>
+    /// Loads saved prefab state and spawns objects from the pool.
+    /// </summary>
     public void LoadPrefabData()
     {
+        if (GM == null || GM.ObjectPool == null || GM.SaveManager == null) return;
+
         if (GM.SaveManager.TryLoadData(out List<PrefabData> prefabDataList))
         {
             foreach (var prefabData in prefabDataList)
             {
                 string cleanKey = prefabData.prefabName.Trim();
-
                 PoolObject obj = GM.ObjectPool.SpawnFromPool(cleanKey);
 
                 if (obj != null)
@@ -47,6 +58,5 @@ public class PrefabDataManager
                 }
             }
         }
-
     }
 }

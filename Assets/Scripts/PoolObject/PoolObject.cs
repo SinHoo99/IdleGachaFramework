@@ -1,16 +1,31 @@
 using UnityEngine;
 
+/// <summary>
+/// Base class for objects managed by ObjectPool.
+/// </summary>
 public class PoolObject : MonoBehaviour
 {
-    public T ReturnMyComponent<T>() where T : PoolObject
+    /// <summary>
+    /// Returns a specific component of the pool object.
+    /// </summary>
+    public T ReturnMyComponent<T>() where T : Component
     {
-        T component = this as T;
-
-        if (component == null)
+        if (TryGetComponent<T>(out var component))
         {
-            Debug.LogWarning($"오브젝트에 {typeof(T).Name} 컴포넌트가 없습니다.");
-            return null;
+            return component;
         }
-        return component;
+
+        Debug.LogWarning($"[PoolObject] Component {typeof(T).Name} not found on {gameObject.name}.");
+        return null;
+    }
+
+    /// <summary>
+    /// Optional virtual method called when the object is returned to the pool.
+    /// </summary>
+    public virtual void OnReturnToPool()
+    {
+        // Reset basic state if needed
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
     }
 }

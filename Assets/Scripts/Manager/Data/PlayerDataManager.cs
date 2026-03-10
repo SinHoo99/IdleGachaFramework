@@ -1,57 +1,44 @@
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerDataManager : MonoBehaviour
 {
     private GameManager GM => GameManager.Instance;
-    private PrefabDataManager prefabDataManager = new PrefabDataManager();
+    private PrefabDataManager _prefabDataManager;
 
     public PlayerData NowPlayerData { get; private set; }
 
-    #region 인벤토리 및 도감 초기화
-
     public void Initialize()
     {
+        _prefabDataManager = new PrefabDataManager();
         LoadAllData();
         InitializeInventory();
     }
 
+    #region Inventory Initialization
     public void InitializeInventory()
     {
         if (NowPlayerData == null)
         {
-            Debug.LogError("NowPlayerData가 null입니다!");
             NowPlayerData = new PlayerData();
         }
 
-        if (NowPlayerData.Inventory == null)
-        {
-            NowPlayerData.Inventory = new Dictionary<FruitsID, CollectedFruitData>();
-        }
-
-        //  DictionaryCollection이 null일 때만 새로 생성 (초기화 방지)
-        if (NowPlayerData.DictionaryCollection == null)
-        {
-            NowPlayerData.DictionaryCollection = new Dictionary<FruitsID, bool>();
-
-            foreach (FruitsID id in Enum.GetValues(typeof(FruitsID)))
-            {
-                NowPlayerData.DictionaryCollection[id] = false; // 초기값 설정
-            }
-        }
+        NowPlayerData.Inventory ??= new Dictionary<FruitsID, CollectedFruitData>();
+        NowPlayerData.DictionaryCollection ??= new Dictionary<FruitsID, bool>();
 
         foreach (FruitsID id in Enum.GetValues(typeof(FruitsID)))
         {
+            if (id == FruitsID.None) continue;
+
             if (!NowPlayerData.Inventory.ContainsKey(id))
             {
                 NowPlayerData.Inventory[id] = new CollectedFruitData { ID = id, Amount = 0 };
             }
 
-            //  DictionaryCollection이 이미 존재하는 경우 값을 변경하지 않음.
             if (!NowPlayerData.DictionaryCollection.ContainsKey(id))
             {
-                NowPlayerData.DictionaryCollection[id] = false; // 기본값 false 유지
+                NowPlayerData.DictionaryCollection[id] = false;
             }
         }
 
@@ -60,79 +47,79 @@ public class PlayerDataManager : MonoBehaviour
             NowPlayerData.LastCollectedTime = DateTime.Now;
         }
     }
-
     #endregion
 
-    #region 플레이어 데이터 저장 및 로드
+    #region Save/Load Data
     public void SavePlayerData()
     {
-        if (NowPlayerData == null)
-        {
-            Debug.LogWarning("저장할 PlayerData가 없습니다.");
-            return;
-        }
+        if (NowPlayerData == null) return;
 
         NowPlayerData.LastCollectedTime = DateTime.Now;
-        GM.SaveManager.SaveData(NowPlayerData);
-       // Debug.Log($"PlayerData 저장 완료: {NowPlayerData.LastCollectedTime}");
+        if (GM != null && GM.SaveManager != null)
+        {
+            GM.SaveManager.SaveData(NowPlayerData);
+        }
     }
 
     public bool LoadPlayerData()
     {
-        if (GM.SaveManager.TryLoadData(out PlayerData data))
+        if (GM != null && GM.SaveManager != null && GM.SaveManager.TryLoadData(out PlayerData data))
         {
             NowPlayerData = data;
-            GameManager.Instance.UIManager.InventoryManager.TriggerInventoryUpdate();
+            
+            if (GM.UIManager?.InventoryManager != null)
+                GM.UIManager.InventoryManager.TriggerInventoryUpdate();
+                
             return true;
         }
-        else
-        {
-            Debug.LogWarning("PlayerData 로드에 실패했습니다.");
-            NowPlayerData = new PlayerData();
-            return false;
-        }
-    }
-    #endregion
 
-    #region 전체 데이터 로드
+        NowPlayerData = new PlayerData();
+        return false;
+    }
+
     public bool LoadAllData()
     {
         bool playerDataLoaded = LoadPlayerData();
-        prefabDataManager.LoadPrefabData(); // ObjectPool 관련 로직은 별도 관리
+        _prefabDataManager?.LoadPrefabData();
         return playerDataLoaded;
     }
     #endregion
 
-    #region 데이터 삭제
+    #region Data Modification
     public void DestroyData()
     {
+        if (NowPlayerData == null) return;
+
         NowPlayerData.Inventory.Clear();
         NowPlayerData.DictionaryCollection.Clear();
         NowPlayerData.PlayerCoin = 1000;
-        GM.BossDataManager.DestroyData();
-        InitializeInventory();
-        GameManager.Instance.UIManager.InventoryManager.TriggerInventoryUpdate();
-        GM.SpawnManager.ReturnAllFruitsToPool();
+        
+        if (GM != null)
+        {
+            if (GM.BossDataManager != null) GM.BossDataManager.DestroyData();
+            InitializeInventory();
+            
+            if (GM.UIManager?.InventoryManager != null)
+                GM.UIManager.InventoryManager.TriggerInventoryUpdate();
+                
+            if (GM.SpawnManager != null)
+                GM.SpawnManager.ReturnAllFruitsToPool();
+        }
     }
-    #endregion
 
-    #region 도감 관련 기능
-    // 과일 수집 시 도감에도 반영
+    /// <summary>
+    /// Adds a fruit to the player's collection dictionary.
+    /// </summary>
     public void CollectFruit(FruitsID fruitID)
     {
-        if (!NowPlayerData.DictionaryCollection.ContainsKey(fruitID) || !NowPlayerData.DictionaryCollection[fruitID])
+        if (NowPlayerData == null || fruitID == FruitsID.None) return;
+
+        if (!NowPlayerData.DictionaryCollection.TryGetValue(fruitID, out bool isCollected) || !isCollected)
         {
             NowPlayerData.DictionaryCollection[fruitID] = true;
-            Debug.Log($"도감 등록: {fruitID}");
-            Debug.Log($"{NowPlayerData.DictionaryCollection[fruitID]}");
+            Debug.Log($"[PlayerDataManager] New fruit collected: {fruitID}");
             SavePlayerData();
         }
-        else
-        {
-            Debug.Log($"[PlayerDataManager] 이미 도감에 등록됨: {fruitID}");
-        }
     }
-
     #endregion
 }
-

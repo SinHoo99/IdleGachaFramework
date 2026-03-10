@@ -3,103 +3,118 @@ using UnityEngine;
 
 public class ObjectPool : MonoBehaviour
 {
-    private Dictionary<string, List<PoolObject>> poolDictionary;
+    private readonly Dictionary<string, List<PoolObject>> _poolDictionary = new();
 
-    public Dictionary<string, List<PoolObject>> PoolDictionary => poolDictionary;
+    public Dictionary<string, List<PoolObject>> PoolDictionary => _poolDictionary;
 
-    private void Awake()
-    {
-        poolDictionary = new Dictionary<string, List<PoolObject>>();
-    }
-
+    /// <summary>
+    /// Creates a new object pool for a specific tag.
+    /// </summary>
     public void AddObjectPool(string tag, PoolObject prefab, int size)
     {
-        if (poolDictionary.ContainsKey(tag))
+        if (string.IsNullOrEmpty(tag) || prefab == null) return;
+
+        if (_poolDictionary.ContainsKey(tag))
         {
-            Debug.LogWarning($"Object Pool에 이미 존재하는 키입니다: {tag}");
+            Debug.LogWarning($"[ObjectPool] Pool with tag '{tag}' already exists.");
             return;
         }
 
-        List<PoolObject> objectPool = new List<PoolObject>();
-
+        var objectPool = new List<PoolObject>();
         for (int i = 0; i < size; i++)
         {
-            PoolObject obj = Instantiate(prefab, transform);
-            obj.gameObject.SetActive(false);
+            PoolObject obj = CreateNewObject(prefab);
             objectPool.Add(obj);
         }
 
-        poolDictionary.Add(tag, objectPool);
+        _poolDictionary.Add(tag, objectPool);
     }
 
+    /// <summary>
+    /// Spawns an object from the pool. Creates a new one if none are available.
+    /// </summary>
     public PoolObject SpawnFromPool(string tag)
     {
-        if (!poolDictionary.TryGetValue(tag, out List<PoolObject> list))
+        if (!_poolDictionary.TryGetValue(tag, out var list) || list.Count == 0)
         {
-            Debug.LogWarning($"Pool에 {tag}에 해당하는 오브젝트가 없습니다.");
+            Debug.LogWarning($"[ObjectPool] Pool for tag '{tag}' not found or empty.");
             return null;
         }
 
-        foreach (PoolObject obj in list)
+        foreach (var obj in list)
         {
-            if (!obj.gameObject.activeInHierarchy)
+            if (obj != null && !obj.gameObject.activeInHierarchy)
             {
                 obj.gameObject.SetActive(true);
                 return obj;
             }
         }
 
-        PoolObject newObj = Instantiate(list[0], transform);
+        // Expand pool if all are active
+        PoolObject newObj = CreateNewObject(list[0]);
         newObj.gameObject.SetActive(true);
         list.Add(newObj);
         return newObj;
     }
 
+    /// <summary>
+    /// Finds an active object by tag.
+    /// </summary>
     public PoolObject FindActiveObject(string tag)
     {
-        if (!poolDictionary.TryGetValue(tag, out List<PoolObject> list))
-        {
-            Debug.LogWarning($"Pool에 {tag}에 해당하는 오브젝트가 없습니다.");
-            return null;
-        }
+        if (!_poolDictionary.TryGetValue(tag, out var list)) return null;
 
-        foreach (PoolObject obj in list)
+        foreach (var obj in list)
         {
-            if (obj.gameObject.activeInHierarchy) 
+            if (obj != null && obj.gameObject.activeInHierarchy)
             {
                 return obj;
             }
         }
-
-        return null; 
+        return null;
     }
 
+    /// <summary>
+    /// Deactivates and resets an object, returning it to the pool.
+    /// </summary>
     public void ReturnObject(string tag, PoolObject obj)
     {
-        if (!poolDictionary.ContainsKey(tag))
+        if (!_poolDictionary.ContainsKey(tag))
         {
-            Debug.LogWarning($"Object Pool에 {tag} 키가 없습니다.");
+            Debug.LogWarning($"[ObjectPool] No pool found for tag '{tag}'.");
             return;
         }
-        InitVector(obj);
-        obj.gameObject.SetActive(false);
+
+        if (obj != null)
+        {
+            obj.OnReturnToPool();
+            obj.gameObject.SetActive(false);
+        }
     }
 
+    /// <summary>
+    /// Returns all objects in all pools.
+    /// </summary>
     public void ReturnAllObjects()
     {
-        foreach (var list in poolDictionary.Values)
+        foreach (var list in _poolDictionary.Values)
         {
             foreach (var obj in list)
             {
-                obj.gameObject.SetActive(false);
-                InitVector(obj);
+                if (obj != null && obj.gameObject.activeInHierarchy)
+                {
+                    obj.OnReturnToPool();
+                    obj.gameObject.SetActive(false);
+                }
             }
         }
-        Debug.Log("모든 오브젝트가 반환되었습니다.");
+        Debug.Log("[ObjectPool] All objects returned to pool.");
     }
-    private void InitVector(PoolObject obj)
+
+    private PoolObject CreateNewObject(PoolObject prefab)
     {
-        obj.transform.position = Vector3.zero;
-        obj.transform.rotation = Quaternion.identity;
+        PoolObject obj = Instantiate(prefab, transform);
+        obj.gameObject.SetActive(false);
+        return obj;
     }
 }

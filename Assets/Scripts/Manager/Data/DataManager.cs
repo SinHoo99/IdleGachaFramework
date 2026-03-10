@@ -4,51 +4,71 @@ using UnityEngine.U2D;
 
 public class DataManager : MonoBehaviour
 {
+    public readonly Dictionary<FruitsID, FruitsData> FruitDatas = new();
+    public readonly Dictionary<BossID, BossData> BossDatas = new();
+
     public void Initialize()
     {
-        ContainFruitsData();
-        ContainBossData();
+        LoadFruitsData();
+        LoadBossData();
     }
 
-    #region 과일 데이터 
-    public Dictionary<FruitsID, FruitsData> FruitDatas = new Dictionary<FruitsID, FruitsData>();
-    public void ContainFruitsData()
+    #region Fruit Data Loading
+    private void LoadFruitsData()
     {
-        List<Dictionary<string, string>> fruitsDataList = CSVReader.Read(ResourcesPath.FruitsCSV);
+        FruitDatas.Clear();
+        var fruitsCSV = CSVReader.Read(ResourcesPath.FruitsCSV);
+        if (fruitsCSV == null) return;
 
-        foreach (var datas in fruitsDataList)
+        // Load SpriteAtlas once to improve performance
+        var atlas = Resources.Load<SpriteAtlas>(ResourcesPath.CSVSprites);
+
+        foreach (var row in fruitsCSV)
         {
-            FruitsData fruitsData = new FruitsData();
-            fruitsData.ID = (FruitsID)int.Parse(datas[Data.ID]);
-            fruitsData.Name = datas[Data.Name];
-            fruitsData.Price = int.Parse(datas[Data.Price]);
-            fruitsData.Type = (FruitsType)int.Parse(datas[Data.Type]);
-            fruitsData.Image = Resources.Load<SpriteAtlas>(ResourcesPath.CSVSprites).GetSprite(datas[Data.Image]);
-            fruitsData.Description = datas[Data.Description];
-            fruitsData.Probability = float.Parse(datas[Data.Probability]);
-            fruitsData.Prefab = Resources.Load<PoolObject>(datas[Data.Prefab]);
-            fruitsData.Damage = int.Parse(datas[Data.Damage]);
-            fruitsData.AttackSpeed = float.Parse(datas[Data.AttackSpeed]);
-            FruitDatas.Add(fruitsData.ID, fruitsData);
+            var fruitsData = new FruitsData
+            {
+                ID = (FruitsID)ParseInt(row[Data.ID]),
+                Name = row[Data.Name],
+                Price = ParseInt(row[Data.Price]),
+                Type = (FruitsType)ParseInt(row[Data.Type]),
+                Description = row[Data.Description],
+                Probability = ParseFloat(row[Data.Probability]),
+                Damage = ParseFloat(row[Data.Damage]),
+                AttackSpeed = ParseFloat(row[Data.AttackSpeed])
+            };
+
+            // Load Sprite from Atlas
+            if (atlas != null)
+            {
+                fruitsData.Image = atlas.GetSprite(row[Data.Image]);
+            }
+
+            // Load Prefab
+            fruitsData.Prefab = Resources.Load<PoolObject>(row[Data.Prefab]);
+
+            if (!FruitDatas.ContainsKey(fruitsData.ID))
+            {
+                FruitDatas.Add(fruitsData.ID, fruitsData);
+            }
         }
     }
     #endregion
 
-    #region 보스 데이터 
-    public Dictionary<BossID, BossData> BossDatas = new Dictionary<BossID, BossData>();
-
-    public void ContainBossData()
+    #region Boss Data Loading
+    private void LoadBossData()
     {
-        List<Dictionary<string, string>> bossDataList = CSVReader.Read(ResourcesPath.BossCSV);
+        BossDatas.Clear();
+        var bossCSV = CSVReader.Read(ResourcesPath.BossCSV);
+        if (bossCSV == null) return;
 
-        foreach (var datas in bossDataList)
+        foreach (var row in bossCSV)
         {
-            BossID bossID = (BossID)int.Parse(datas[Data.ID]);
-            int maxHealth = int.Parse(datas[Data.MaxHealth]);
-            string animationState = datas[Data.AnimationState];
-            int reward = int.Parse(datas[Data.Reward]);
+            var bossID = (BossID)ParseInt(row[Data.ID]);
+            var maxHealth = ParseInt(row[Data.MaxHealth]);
+            var animationState = row[Data.AnimationState];
+            var reward = ParseInt(row[Data.Reward]);
 
-            BossData bossData = new BossData(bossID, maxHealth, animationState, reward);
+            var bossData = new BossData(bossID, maxHealth, animationState, reward);
 
             if (!BossDatas.ContainsKey(bossData.ID))
             {
@@ -56,7 +76,17 @@ public class DataManager : MonoBehaviour
             }
         }
     }
+    #endregion
 
+    #region Helper Methods
+    private int ParseInt(string value)
+    {
+        return int.TryParse(value, out int result) ? result : 0;
+    }
 
+    private float ParseFloat(string value)
+    {
+        return float.TryParse(value, out float result) ? result : 0f;
+    }
     #endregion
 }

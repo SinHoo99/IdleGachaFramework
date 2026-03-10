@@ -6,7 +6,8 @@ using UnityEngine;
 public class InventoryManager : MonoBehaviour
 {
     private GameManager GM => GameManager.Instance;
-    [SerializeField] private FruitUIManager _fruitUIManager; // Inspector에서 할당
+    
+    [SerializeField] private FruitUIManager _fruitUIManager;
     public FruitUIManager FruitUIManager => _fruitUIManager;
 
     public event Action OnInventoryUpdated;
@@ -14,7 +15,11 @@ public class InventoryManager : MonoBehaviour
     private void Start()
     {
         OnInventoryUpdated += UpdateInventoryUI;
-        _fruitUIManager.SetFruitData(GM.DataManager.FruitDatas); // 과일 데이터 설정
+        
+        if (GM != null && GM.DataManager != null)
+        {
+            _fruitUIManager.SetFruitData(GM.DataManager.FruitDatas);
+        }
     }
 
     private void OnDestroy()
@@ -25,22 +30,24 @@ public class InventoryManager : MonoBehaviour
     public void TriggerInventoryUpdate()
     {
         OnInventoryUpdated?.Invoke();
-        GM.PlayerStatusUI.PlayerCoin();
-        GM.UIManager.DictionaryManager.UpdateAllDictionaryUI();
+        
+        if (GM != null)
+        {
+            if (GM.PlayerStatusUI != null) GM.PlayerStatusUI.PlayerCoin();
+            if (GM.UIManager?.DictionaryManager != null) GM.UIManager.DictionaryManager.UpdateAllDictionaryUI();
+        }
     }
 
     private void UpdateInventoryUI()
     {
-        if (GM.PlayerDataManager.NowPlayerData.Inventory == null || GM.PlayerDataManager.NowPlayerData.Inventory.Count == 0)
+        if (GM == null || GM.PlayerDataManager?.NowPlayerData?.Inventory == null)
         {
-            _fruitUIManager.UpdateFruitCountsUI(new Dictionary<FruitsID, int>());
+            if (_fruitUIManager != null)
+                _fruitUIManager.UpdateFruitCountsUI(new Dictionary<FruitsID, int>());
             return;
         }
 
-
-        _fruitUIManager.UpdateFruitCountsUI(
-            GM.PlayerDataManager.NowPlayerData.Inventory.ToDictionary(kv => kv.Key, kv => kv.Value.Amount)
-        );
+        var inventory = GM.PlayerDataManager.NowPlayerData.Inventory;
+        _fruitUIManager.UpdateFruitCountsUI(inventory.ToDictionary(kv => kv.Key, kv => kv.Value.Amount));
     }
-  
 }
