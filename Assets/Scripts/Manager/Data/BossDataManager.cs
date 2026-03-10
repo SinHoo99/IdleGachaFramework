@@ -1,14 +1,15 @@
 using UnityEngine;
 
-public class BossDataManager : MonoBehaviour
+public class BossDataManager : Singleton<BossDataManager>
 {
     private GameManager GM => GameManager.Instance;
 
     public BossData StaticBossData { get; private set; }
     public BossRuntimeData BossRuntimeData { get; private set; }
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         LoadAllData();
     }
 

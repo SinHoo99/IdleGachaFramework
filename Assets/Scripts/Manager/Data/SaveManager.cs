@@ -3,7 +3,7 @@ using System.IO;
 using UnityEngine;
 using Newtonsoft.Json;
 
-public class SaveManager : MonoBehaviour
+public class SaveManager : Singleton<SaveManager>
 {
     private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
     {

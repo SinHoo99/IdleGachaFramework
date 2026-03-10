@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DictionaryManager : MonoBehaviour
+public class DictionaryManager : Singleton<DictionaryManager>
 {
     private GameManager GM => GameManager.Instance;
 
@@ -12,23 +12,23 @@ public class DictionaryManager : MonoBehaviour
 
     private void Start()
     {
-        if (GM == null || GM.DataManager == null || GM.ScoreUpdater == null)
+        if (DataManager.Instance == null || ScoreUpdater.Instance == null)
         {
-            Debug.LogError("[DictionaryManager] GameManager or its sub-managers are missing.");
+            Debug.LogError("[DictionaryManager] DataManager or ScoreUpdater is missing.");
             return;
         }
 
-        InitializeDictionary(GM.DataManager.FruitDatas);
+        InitializeDictionary(DataManager.Instance.FruitDatas);
 
         // Subscribe to fruit collection events
-        GM.ScoreUpdater.OnFruitCollected += UpdateDictionaryUI;
+        ScoreUpdater.Instance.OnFruitCollected += UpdateDictionaryUI;
     }
 
     private void OnDestroy()
     {
-        if (GM != null && GM.ScoreUpdater != null)
+        if (ScoreUpdater.Instance != null)
         {
-            GM.ScoreUpdater.OnFruitCollected -= UpdateDictionaryUI;
+            ScoreUpdater.Instance.OnFruitCollected -= UpdateDictionaryUI;
         }
     }
 
@@ -90,7 +90,7 @@ public class DictionaryManager : MonoBehaviour
     {
         if (!_fruitDictionaryItems.TryGetValue(fruitID, out var item)) return;
 
-        bool isCollected = GM.PlayerDataManager.NowPlayerData.DictionaryCollection.TryGetValue(fruitID, out bool collected) && collected;
+        bool isCollected = PlayerDataManager.Instance.NowPlayerData.DictionaryCollection.TryGetValue(fruitID, out bool collected) && collected;
         item.UpdateFruitUI(isCollected);
     }
 
@@ -99,9 +99,11 @@ public class DictionaryManager : MonoBehaviour
     /// </summary>
     public void UpdateAllDictionaryUI()
     {
+        if (PlayerDataManager.Instance == null || PlayerDataManager.Instance.NowPlayerData == null) return;
+
         foreach (var (id, item) in _fruitDictionaryItems)
         {
-            bool isCollected = GM.PlayerDataManager.NowPlayerData.DictionaryCollection.TryGetValue(id, out bool collected) && collected;
+            bool isCollected = PlayerDataManager.Instance.NowPlayerData.DictionaryCollection.TryGetValue(id, out bool collected) && collected;
             item.UpdateFruitUI(isCollected);
         }
     }

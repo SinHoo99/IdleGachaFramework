@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class PlayerStatusUI : MonoBehaviour
+public class PlayerStatusUI : Singleton<PlayerStatusUI>
 {
     private GameManager GM => GameManager.Instance;
     public TextMeshProUGUI CoinText;
     public TextMeshProUGUI BossText;
+
     private void Start()
     {
         PlayerCoin();
@@ -15,26 +16,32 @@ public class PlayerStatusUI : MonoBehaviour
     }
     private void OnEnable()
     {
-        Boss.OnBossDefeated += UpdateCoinUI; // 보스 처치 이벤트 구독
+        Boss.OnBossDefeated += UpdateCoinUI; 
     }
 
     private void OnDisable()
     {
-        Boss.OnBossDefeated -= UpdateCoinUI; // 이벤트 해제
+        Boss.OnBossDefeated -= UpdateCoinUI; 
     }
 
 
     public void PlayerCoin()
     {
-        CoinText.text = $"{GM.PlayerDataManager.NowPlayerData.PlayerCoin}";
+        if (PlayerDataManager.Instance != null && PlayerDataManager.Instance.NowPlayerData != null)
+        {
+            CoinText.text = $"{PlayerDataManager.Instance.NowPlayerData.PlayerCoin}";
+        }
     }
 
     public void BossStatus()
     {
-        BossText.text = $"보스 단계 {GM.BossDataManager.BossRuntimeData.CurrentBossID}";
+        if (BossDataManager.Instance != null && BossDataManager.Instance.BossRuntimeData != null)
+        {
+            BossText.text = $" 丙 {BossDataManager.Instance.BossRuntimeData.CurrentBossID}";
+        }
     }
     private void UpdateCoinUI(int reward)
     {
-        CoinText.text = $"{GM.PlayerDataManager.NowPlayerData.PlayerCoin}";
+        PlayerCoin();
     }
 }

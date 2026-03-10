@@ -1,10 +1,10 @@
 using System;
 using UnityEngine;
 
-public class PoolManager : MonoBehaviour
+public class PoolManager : Singleton<PoolManager>
 {
     private GameManager GM => GameManager.Instance;
-    protected ObjectPool ObjectPool => GM != null ? GM.ObjectPool : null;
+    protected ObjectPool ObjectPool => ObjectPool.Instance;
 
     #region Object Pool Initialization Logic
     /// <summary>
@@ -12,14 +12,14 @@ public class PoolManager : MonoBehaviour
     /// </summary>
     public void AddObjectPool()
     {
-        if (ObjectPool == null || GM == null || GM.DataManager == null) return;
+        if (ObjectPool == null || DataManager.Instance == null) return;
 
         // Automatically add pools for all FruitsID enums defined in data
         foreach (FruitsID id in Enum.GetValues(typeof(FruitsID)))
         {
             if (id == FruitsID.None) continue;
 
-            var fruitData = GM.GetFruitsData(id);
+            var fruitData = GameManager.Instance.GetFruitsData(id);
             if (fruitData != null && fruitData.Prefab != null)
             {
                 ObjectPool.AddObjectPool(id.ToString(), fruitData.Prefab, 20);
@@ -27,9 +27,9 @@ public class PoolManager : MonoBehaviour
         }
 
         // Add bullet pool
-        if (GM.GetBullet() != null)
+        if (GameManager.Instance.GetBullet() != null)
         {
-            ObjectPool.AddObjectPool(Tag.Bullet, GM.GetBullet(), 50);
+            ObjectPool.AddObjectPool(Tag.Bullet, GameManager.Instance.GetBullet(), 50);
         }
     }
 

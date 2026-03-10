@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.U2D;
 
-public class DataManager : MonoBehaviour
+public class DataManager : Singleton<DataManager>
 {
     public readonly Dictionary<FruitsID, FruitsData> FruitDatas = new();
     public readonly Dictionary<BossID, BossData> BossDatas = new();

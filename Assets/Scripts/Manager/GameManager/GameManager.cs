@@ -4,39 +4,23 @@ using UnityEngine.Audio;
 public class GameManager : Singleton<GameManager>
 {
     #region Script Setup
-    [Header("Managers")]
-    [SerializeField] private UIManager _uiManager;
-    [SerializeField] private PlayerStatusUI _playerStatusUI;
-    [SerializeField] private SpawnManager _spawnManager;
-    [SerializeField] private SoundManager _soundManager;
-    [SerializeField] private PoolManager _poolManager;
-    [SerializeField] private AlertManager _alertManager;
-    [SerializeField] private ObjectPool _objectPool;
-    [SerializeField] private PlayerDataManager _playerDataManager;
-    [SerializeField] private BossDataManager _bossDataManager;
-    [SerializeField] private DataManager _dataManager;
-    [SerializeField] private SaveManager _saveManager;
-    [SerializeField] private ScoreUpdater _scoreUpdater;
-
     [Header("Game Objects")]
     [SerializeField] private PoolObject _bulletPrefabs;
     #endregion
 
-    private PrefabDataManager _prefabDataManager;
-
-    #region Public Properties
-    public UIManager UIManager => _uiManager;
-    public PlayerStatusUI PlayerStatusUI => _playerStatusUI;
-    public SpawnManager SpawnManager => _spawnManager;
-    public PlayerDataManager PlayerDataManager => _playerDataManager;
-    public ObjectPool ObjectPool => _objectPool;
-    public DataManager DataManager => _dataManager;
-    public SaveManager SaveManager => _saveManager;
-    public PoolManager PoolManager => _poolManager;
-    public BossDataManager BossDataManager => _bossDataManager;
-    public SoundManager SoundManager => _soundManager;
-    public AlertManager AlertManager => _alertManager;
-    public ScoreUpdater ScoreUpdater => _scoreUpdater;
+    #region Public Properties (Redirection to Singletons for compatibility)
+    public UIManager UIManager => UIManager.Instance;
+    public PlayerStatusUI PlayerStatusUI => PlayerStatusUI.Instance;
+    public SpawnManager SpawnManager => SpawnManager.Instance;
+    public PlayerDataManager PlayerDataManager => PlayerDataManager.Instance;
+    public ObjectPool ObjectPool => ObjectPool.Instance;
+    public DataManager DataManager => DataManager.Instance;
+    public SaveManager SaveManager => SaveManager.Instance;
+    public PoolManager PoolManager => PoolManager.Instance;
+    public BossDataManager BossDataManager => BossDataManager.Instance;
+    public SoundManager SoundManager => SoundManager.Instance;
+    public AlertManager AlertManager => AlertManager.Instance;
+    public ScoreUpdater ScoreUpdater => ScoreUpdater.Instance;
     #endregion
 
     protected override void Awake()
@@ -56,35 +40,25 @@ public class GameManager : Singleton<GameManager>
     #region Initialization Logic
     private void InitializeComponents()
     {
-        // Find components if they are not assigned in the Inspector
-        _dataManager ??= GetComponentInChildren<DataManager>();
-        _saveManager ??= GetComponentInChildren<SaveManager>();
-        _playerDataManager ??= GetComponentInChildren<PlayerDataManager>();
-        _bossDataManager ??= GetComponentInChildren<BossDataManager>();
-        _soundManager ??= GetComponentInChildren<SoundManager>();
-        _objectPool ??= GetComponentInChildren<ObjectPool>();
-        _poolManager ??= GetComponentInChildren<PoolManager>();
-        _uiManager ??= GetComponentInChildren<UIManager>();
-        _alertManager ??= GetComponentInChildren<AlertManager>();
-        _spawnManager ??= GetComponentInChildren<SpawnManager>();
-
-        // Core Initialization
-        if (_dataManager != null) _dataManager.Initialize();
-        if (_soundManager != null) _soundManager.Initialize();
+        // Core Initialization in specific order
+        if (DataManager.Instance != null) DataManager.Instance.Initialize();
+        if (SoundManager.Instance != null) SoundManager.Instance.Initialize();
+        if (SoundManager.Instance != null && SoundManager.Instance.LoadOptionData())
+        {
+            // Apply loaded options if needed
+        }
     }
 
     private void InitializeGame()
     {
-        if (_poolManager != null) _poolManager.AddObjectPool();
-        if (_playerDataManager != null) _playerDataManager.Initialize();
+        if (PoolManager.Instance != null) PoolManager.Instance.AddObjectPool();
+        if (PlayerDataManager.Instance != null) PlayerDataManager.Instance.Initialize();
         
-        _prefabDataManager = new PrefabDataManager();
-        
-        if (_uiManager?.InventoryManager != null)
-            _uiManager.InventoryManager.TriggerInventoryUpdate();
+        if (UIManager.Instance?.InventoryManager != null)
+            UIManager.Instance.InventoryManager.TriggerInventoryUpdate();
             
-        if (_soundManager?.SettingPopup != null)
-            _soundManager.SettingPopup.Initializer();
+        if (SoundManager.Instance?.SettingPopup != null)
+            SoundManager.Instance.SettingPopup.Initializer();
     }
     #endregion
 
@@ -93,9 +67,9 @@ public class GameManager : Singleton<GameManager>
     {
         base.OnApplicationQuit();
 
-        if (_soundManager?.SettingPopup != null)
+        if (SoundManager.Instance?.SettingPopup != null)
         {
-            _soundManager.SettingPopup.gameObject.SetActive(false);
+            SoundManager.Instance.SettingPopup.gameObject.SetActive(false);
         }
 
         SaveAllData();
@@ -103,7 +77,6 @@ public class GameManager : Singleton<GameManager>
 
     private void OnApplicationPause(bool pause)
     {
-        // Save on pause only if not already quitting
         if (pause)
         {
             SaveAllData();
@@ -112,10 +85,10 @@ public class GameManager : Singleton<GameManager>
 
     public void SaveAllData()
     {
-        if (_playerDataManager != null) _playerDataManager.SavePlayerData();
-        if (_prefabDataManager != null) _prefabDataManager.SavePrefabData();
-        if (_bossDataManager != null) _bossDataManager.SaveBossRuntimeData();
-        if (_soundManager != null) _soundManager.SaveOptionData();
+        if (PlayerDataManager.Instance != null) PlayerDataManager.Instance.SavePlayerData();
+        if (PrefabDataManager.Instance != null) PrefabDataManager.Instance.SavePrefabData();
+        if (BossDataManager.Instance != null) BossDataManager.Instance.SaveBossRuntimeData();
+        if (SoundManager.Instance != null) SoundManager.Instance.SaveOptionData();
     }
     #endregion
 
@@ -124,32 +97,32 @@ public class GameManager : Singleton<GameManager>
 
     public FruitsData GetFruitsData(FruitsID id)
     {
-        if (_dataManager == null || _dataManager.FruitDatas == null) return null;
-        return _dataManager.FruitDatas.TryGetValue(id, out var data) ? data : null;
+        if (DataManager.Instance == null || DataManager.Instance.FruitDatas == null) return null;
+        return DataManager.Instance.FruitDatas.TryGetValue(id, out var data) ? data : null;
     }
 
     public int GetFruitAmount(FruitsID id)
     {
-        if (_playerDataManager?.NowPlayerData?.Inventory == null) return 0;
-        return _playerDataManager.NowPlayerData.Inventory.TryGetValue(id, out var collectedData) ? collectedData.Amount : 0;
+        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory == null) return 0;
+        return PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(id, out var collectedData) ? collectedData.Amount : 0;
     }
 
     public CollectedFruitData GetCollectedFruitData(FruitsID id)
     {
-        if (_playerDataManager?.NowPlayerData?.Inventory == null) return EmptyCollectedFruitData;
-        return _playerDataManager.NowPlayerData.Inventory.TryGetValue(id, out var collectedData) ? collectedData : EmptyCollectedFruitData;
+        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory == null) return EmptyCollectedFruitData;
+        return PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(id, out var collectedData) ? collectedData : EmptyCollectedFruitData;
     }
 
     public BossData GetBossData(BossID id)
     {
-        if (_dataManager == null || _dataManager.BossDatas == null) return null;
-        return _dataManager.BossDatas.TryGetValue(id, out BossData bossData) ? bossData : null;
+        if (DataManager.Instance == null || DataManager.Instance.BossDatas == null) return null;
+        return DataManager.Instance.BossDatas.TryGetValue(id, out BossData bossData) ? bossData : null;
     }
 
     public int GetBossReward(BossID id)
     {
-        if (_dataManager == null || _dataManager.BossDatas == null) return 0;
-        return _dataManager.BossDatas.TryGetValue(id, out BossData bossData) ? bossData.Reward : 0;
+        if (DataManager.Instance == null || DataManager.Instance.BossDatas == null) return 0;
+        return DataManager.Instance.BossDatas.TryGetValue(id, out BossData bossData) ? bossData.Reward : 0;
     }
 
     public PoolObject GetBullet()
@@ -161,17 +134,17 @@ public class GameManager : Singleton<GameManager>
     #region Sound Methods
     public AudioMixer GetAudioMixer()
     {
-        return _soundManager != null ? _soundManager.AudioMixer : null;
+        return SoundManager.Instance != null ? SoundManager.Instance.AudioMixer : null;
     }
 
     public void PlayBGM(BGM target)
     {
-        if (_soundManager != null) _soundManager.PlayBGM(target);
+        if (SoundManager.Instance != null) SoundManager.Instance.PlayBGM(target);
     }
 
     public void PlaySFX(SFX target)
     {
-        if (_soundManager != null) _soundManager.PlaySFX(target);
+        if (SoundManager.Instance != null) SoundManager.Instance.PlaySFX(target);
     }
     #endregion
 }

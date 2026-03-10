@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class SpawnManager : MonoBehaviour
+public class SpawnManager : Singleton<SpawnManager>
 {
     [SerializeField] private GameObject boss;
     public GameObject Boss => boss;
@@ -16,11 +16,10 @@ public class SpawnManager : MonoBehaviour
     public void SpawnFruitFromPool(FruitsID fruitID)
     {
         string tag = fruitID.ToString();
-        var gameManager = GameManager.Instance;
+        
+        if (PoolManager.Instance == null) return;
 
-        if (gameManager == null || gameManager.PoolManager == null) return;
-
-        PoolObject fruit = gameManager.PoolManager.CreateUnitPrefabs(tag);
+        PoolObject fruit = PoolManager.Instance.CreateUnitPrefabs(tag);
         if (fruit != null)
         {
             Vector3 centerPos = boss != null ? boss.transform.position : Vector3.zero;
@@ -40,9 +39,9 @@ public class SpawnManager : MonoBehaviour
 
     public void ReturnAllFruitsToPool()
     {
-        if (GameManager.Instance != null && GameManager.Instance.ObjectPool != null)
+        if (ObjectPool.Instance != null)
         {
-            GameManager.Instance.ObjectPool.ReturnAllObjects();
+            ObjectPool.Instance.ReturnAllObjects();
         }
     }
 
@@ -50,7 +49,7 @@ public class SpawnManager : MonoBehaviour
     {
         if (_currentBoss == null)
         {
-            _currentBoss = FindObjectOfType<Boss>();
+            _currentBoss = FindAnyObjectByType<Boss>();
         }
         return _currentBoss;
     }

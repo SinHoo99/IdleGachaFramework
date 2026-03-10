@@ -2,16 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerDataManager : MonoBehaviour
+public class PlayerDataManager : Singleton<PlayerDataManager>
 {
     private GameManager GM => GameManager.Instance;
-    private PrefabDataManager _prefabDataManager;
+    private PrefabDataManager _prefabDataManager => PrefabDataManager.Instance;
 
     public PlayerData NowPlayerData { get; private set; }
 
     public void Initialize()
     {
-        _prefabDataManager = new PrefabDataManager();
         LoadAllData();
         InitializeInventory();
     }

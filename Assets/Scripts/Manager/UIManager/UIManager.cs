@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-public class UIManager : MonoBehaviour
+public class UIManager : Singleton<UIManager>
 {
     [SerializeField] private InventoryManager _inventoryManager;
     [SerializeField] private DictionaryManager _dictionaryManager;

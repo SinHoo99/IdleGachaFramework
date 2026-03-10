@@ -2,7 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 
-public class AlertManager : MonoBehaviour
+public class AlertManager : Singleton<AlertManager>
 {
     [SerializeField] private GameObject alertObject;
     [SerializeField] private TextMeshProUGUI alertText;

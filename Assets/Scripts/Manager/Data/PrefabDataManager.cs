@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PrefabDataManager
+public class PrefabDataManager : Singleton<PrefabDataManager>
 {
     private GameManager GM => GameManager.Instance;
 
@@ -10,7 +10,7 @@ public class PrefabDataManager
     /// </summary>
     public void SavePrefabData()
     {
-        if (GM == null || GM.ObjectPool == null || GM.SaveManager == null) return;
+        if (GM == null || GM.ObjectPool == null || SaveManager.Instance == null) return;
 
         var prefabDataList = new List<PrefabData>();
         int unitLayer = LayerMask.NameToLayer(Layer.Unit);
@@ -33,7 +33,7 @@ public class PrefabDataManager
             }
         }
 
-        GM.SaveManager.SaveData(prefabDataList);
+        SaveManager.Instance.SaveData(prefabDataList);
     }
 
     /// <summary>
@@ -41,9 +41,9 @@ public class PrefabDataManager
     /// </summary>
     public void LoadPrefabData()
     {
-        if (GM == null || GM.ObjectPool == null || GM.SaveManager == null) return;
+        if (GM == null || GM.ObjectPool == null || SaveManager.Instance == null) return;
 
-        if (GM.SaveManager.TryLoadData(out List<PrefabData> prefabDataList))
+        if (SaveManager.Instance.TryLoadData(out List<PrefabData> prefabDataList))
         {
             foreach (var prefabData in prefabDataList)
             {

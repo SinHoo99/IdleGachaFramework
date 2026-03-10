@@ -2,46 +2,49 @@ using System;
 using System.Linq;
 using UnityEngine;
 
-public class ScoreUpdater : MonoBehaviour
+public class ScoreUpdater : Singleton<ScoreUpdater>
 {
     private GameManager GM => GameManager.Instance;
 
     public event Action<FruitsID> OnFruitCollected;
 
-    #region 과일 생성 로직
+    #region Fruit Logic
     /// <summary>
-    /// 특정 과일을 추가합니다.
+    /// Adds a fruit to the player's collection.
     /// </summary>
     public void AddFruits(FruitsID fruitID)
     {
-        var inventory = GM.PlayerDataManager.NowPlayerData.Inventory;
+        if (PlayerDataManager.Instance == null || PlayerDataManager.Instance.NowPlayerData?.Inventory == null) return;
+        
+        var inventory = PlayerDataManager.Instance.NowPlayerData.Inventory;
 
         if (!inventory.ContainsKey(fruitID))
         {
-            Debug.LogWarning($"{fruitID}가 Inventory에 존재하지 않습니다.");
+            Debug.LogWarning($"{fruitID} not found in Inventory.");
             return;
         }
 
-        //  먼저 도감 등록
-        GM.PlayerDataManager.CollectFruit(fruitID);
+        // Collect fruit status
+        PlayerDataManager.Instance.CollectFruit(fruitID);
 
-        //  데이터 저장하여 즉시 반영
-        GM.PlayerDataManager.SavePlayerData();
-
-        //  과일 수집 처리 (Amount 증가)
+        // Increment amount
         inventory[fruitID].Amount++;
 
-        //  정확한 개수를 전달하여 UI 업데이트
-        GM.UIManager.InventoryManager.FruitUIManager.UpdateOrCreateFruitUI(fruitID, inventory[fruitID].Amount);
+        // Save data
+        PlayerDataManager.Instance.SavePlayerData();
 
-        //  이벤트를 마지막에 호출하여 UI 갱신 시 데이터가 정확하게 반영되도록 함
+        // Update UI
+        if (FruitUIManager.Instance != null)
+            FruitUIManager.Instance.UpdateOrCreateFruitUI(fruitID, inventory[fruitID].Amount);
+
+        // Invoke event
         OnFruitCollected?.Invoke(fruitID);
 
-        Debug.Log($"[ScoreUpdater] {fruitID} 추가 완료 - 현재 개수: {inventory[fruitID].Amount}");
+        Debug.Log($"[ScoreUpdater] {fruitID} added. Current amount: {inventory[fruitID].Amount}");
     }
 
     /// <summary>
-    /// 랜덤 확률 기반 과일 추가
+    /// Adds a random fruit based on probability.
     /// </summary>
     public void AddRandomFruit()
     {
@@ -49,23 +52,19 @@ public class ScoreUpdater : MonoBehaviour
 
         if (selectedFruit.HasValue)
         {
-            AddFruits(selectedFruit.Value); // null이 아닐 경우만 AddFruits 호출
-            GM.SpawnManager.SpawnFruitFromPool(selectedFruit.Value);
+            AddFruits(selectedFruit.Value); 
+            if (SpawnManager.Instance != null)
+                SpawnManager.Instance.SpawnFruitFromPool(selectedFruit.Value);
         }
     }
 
-    /// <summary>
-    /// 확률 기반 랜덤 과일 선택
-    /// </summary>
     private FruitsID? GetRandomFruitByProbability()
     {
-        var fruits = GM.DataManager.FruitDatas.Values.ToList();
-
-        // 전체 확률의 합 계산
+        if (DataManager.Instance == null) return null;
+        
+        var fruits = DataManager.Instance.FruitDatas.Values.ToList();
         float totalProbability = fruits.Sum(f => f.Probability);
-
-        // 랜덤 값 생성 (0에서 totalProbability 사이)
-        float randomValue = UnityEngine.Random.Range(0f, totalProbability + 1.0f); // +1.0f로 선택되지 않을 확률 추가
+        float randomValue = UnityEngine.Random.Range(0f, totalProbability + 1.0f); 
 
         float cumulativeProbability = 0f;
 
@@ -74,30 +73,38 @@ public class ScoreUpdater : MonoBehaviour
             cumulativeProbability += fruit.Probability;
             if (randomValue <= cumulativeProbability)
             {
-                GM.AlertManager.ShowAlert($"{fruit.ID} 수집");
-                return fruit.ID; // 과일 선택               
+                if (AlertManager.Instance != null)
+                    AlertManager.Instance.ShowAlert($"{fruit.ID} Collection Success");
+                return fruit.ID; 
             }
         }
 
-        GM.AlertManager.ShowAlert("수집에 실패했습니다.");
-        return null; // 아무것도 선택되지 않음
+        if (AlertManager.Instance != null)
+            AlertManager.Instance.ShowAlert("Failed to collect random fruit.");
+        return null; 
     }
     #endregion
 
-    #region 클릭 입력 처리
+    #region Input Handling
     public void HandleInput()
     {
-        GM.PlaySFX(SFX.Click);
+        if (SoundManager.Instance != null)
+            SoundManager.Instance.PlaySFX(SFX.Click);
 
-        if (GM.PlayerDataManager.NowPlayerData.PlayerCoin >= 100)
+        if (PlayerDataManager.Instance != null && PlayerDataManager.Instance.NowPlayerData.PlayerCoin >= 100)
         {
-            GM.PlayerStatusUI.PlayerCoin();
-            AddRandomFruit(); // 클릭 시 랜덤 과일 수집
-            GM.UIManager.InventoryManager.TriggerInventoryUpdate();
+            if (PlayerStatusUI.Instance != null)
+                PlayerStatusUI.Instance.PlayerCoin();
+                
+            AddRandomFruit(); 
+            
+            if (InventoryManager.Instance != null)
+                InventoryManager.Instance.TriggerInventoryUpdate();
         }
         else
         {
-            GM.AlertManager.ShowAlert("돈이 부족합니다.");
+            if (AlertManager.Instance != null)
+                AlertManager.Instance.ShowAlert("Not enough coins.");
         }
     }
     #endregion

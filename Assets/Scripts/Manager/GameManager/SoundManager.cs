@@ -9,7 +9,7 @@ public class AudioClipEntry<T>
     public List<AudioClip> Clips;
 }
 
-public class SoundManager : MonoBehaviour
+public class SoundManager : Singleton<SoundManager>
 {
     [SerializeField] private SettingPopup settingPopup;
     public SettingPopup SettingPopup => settingPopup;
@@ -31,6 +31,12 @@ public class SoundManager : MonoBehaviour
     private GameManager GM => GameManager.Instance;
 
     public OptionData NowOptionData;
+
+    protected override void Awake()
+    {
+        base.Awake();
+        Initialize();
+    }
 
     private void Start()
     {
@@ -76,15 +82,15 @@ public class SoundManager : MonoBehaviour
     #region Option Data Management
     public void SaveOptionData()
     {
-        if (GM != null && GM.SaveManager != null)
+        if (SaveManager.Instance != null)
         {
-            GM.SaveManager.SaveData(NowOptionData);
+            SaveManager.Instance.SaveData(NowOptionData);
         }
     }
 
     public bool LoadOptionData()
     {
-        if (GM != null && GM.SaveManager != null && GM.SaveManager.TryLoadData(out OptionData data))
+        if (SaveManager.Instance != null && SaveManager.Instance.TryLoadData(out OptionData data))
         {
             NowOptionData = data;
             return true;

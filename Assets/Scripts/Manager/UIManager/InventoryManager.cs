@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class InventoryManager : MonoBehaviour
+public class InventoryManager : Singleton<InventoryManager>
 {
     private GameManager GM => GameManager.Instance;
     
@@ -16,9 +16,9 @@ public class InventoryManager : MonoBehaviour
     {
         OnInventoryUpdated += UpdateInventoryUI;
         
-        if (GM != null && GM.DataManager != null)
+        if (DataManager.Instance != null)
         {
-            _fruitUIManager.SetFruitData(GM.DataManager.FruitDatas);
+            _fruitUIManager.SetFruitData(DataManager.Instance.FruitDatas);
         }
     }
 
@@ -31,23 +31,20 @@ public class InventoryManager : MonoBehaviour
     {
         OnInventoryUpdated?.Invoke();
         
-        if (GM != null)
-        {
-            if (GM.PlayerStatusUI != null) GM.PlayerStatusUI.PlayerCoin();
-            if (GM.UIManager?.DictionaryManager != null) GM.UIManager.DictionaryManager.UpdateAllDictionaryUI();
-        }
+        if (PlayerStatusUI.Instance != null) PlayerStatusUI.Instance.PlayerCoin();
+        if (DictionaryManager.Instance != null) DictionaryManager.Instance.UpdateAllDictionaryUI();
     }
 
     private void UpdateInventoryUI()
     {
-        if (GM == null || GM.PlayerDataManager?.NowPlayerData?.Inventory == null)
+        if (PlayerDataManager.Instance == null || PlayerDataManager.Instance.NowPlayerData?.Inventory == null)
         {
             if (_fruitUIManager != null)
                 _fruitUIManager.UpdateFruitCountsUI(new Dictionary<FruitsID, int>());
             return;
         }
 
-        var inventory = GM.PlayerDataManager.NowPlayerData.Inventory;
+        var inventory = PlayerDataManager.Instance.NowPlayerData.Inventory;
         _fruitUIManager.UpdateFruitCountsUI(inventory.ToDictionary(kv => kv.Key, kv => kv.Value.Amount));
     }
 }

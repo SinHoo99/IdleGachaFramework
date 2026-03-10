@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class FruitUIManager : MonoBehaviour
+public class FruitUIManager : Singleton<FruitUIManager>
 {
     private GameManager GM => GameManager.Instance;
 
@@ -49,9 +49,9 @@ public class FruitUIManager : MonoBehaviour
 
     public void CreateFruitUI(FruitsID id, int count)
     {
-        if (GM == null) return;
+        if (DataManager.Instance == null) return;
 
-        var fruitData = GM.GetFruitsData(id);
+        var fruitData = DataManager.Instance.FruitDatas.TryGetValue(id, out var data) ? data : null;
         if (fruitData == null || fruitItemPrefab == null) return;
 
         var fruitItemObject = Instantiate(fruitItemPrefab, fruitListParent);
@@ -79,7 +79,7 @@ public class FruitUIManager : MonoBehaviour
 
     public Sprite GetFruitImage(FruitsID id)
     {
-        if (GM == null) return null;
-        return GM.GetFruitsData(id)?.Image;
+        if (DataManager.Instance == null) return null;
+        return DataManager.Instance.FruitDatas.TryGetValue(id, out var data) ? data.Image : null;
     }
 }
