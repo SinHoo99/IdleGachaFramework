@@ -1,5 +1,0 @@
-ID,Name,Type,Rarity,Description,Price,Image,Probability,Prefab,Damage,AttackSpeed
-1,Apple,0,Common,사과,50,Apple,0.3,Prefabs/Fruits/Apple,10,5
-2,Banana,0,Common,바나나,75,Banana,0.3,Prefabs/Fruits/Banana,20,3
-3,Melon,0,Uncommon,멜론,200,Melon,0.2,Prefabs/Fruits/Melon,30,1
-4,Carrot,0,Uncommon,당근,1200,Carrot,0.2,Prefabs/Fruits/Carrot,40,0.5
