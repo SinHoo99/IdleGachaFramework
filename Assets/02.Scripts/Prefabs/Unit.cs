@@ -27,7 +27,7 @@ public class Unit : PoolObject
     public void SetupUnit(string id)
     {
         UnitID = id;
-        UpdateScale();
+        //UpdateScale();
     }
 
     private void OnEnable()

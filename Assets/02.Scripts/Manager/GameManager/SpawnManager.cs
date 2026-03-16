@@ -9,6 +9,7 @@ public class SpawnManager : Singleton<SpawnManager>
 
     [SerializeField] private float minSpawnDistance = -2f;
     [SerializeField] private float maxSpawnDistance = 0f;
+    [SerializeField] private float fixedY = -3.5f;
 
     private Boss _currentBoss;
 
@@ -70,8 +71,7 @@ public class SpawnManager : Singleton<SpawnManager>
         PoolObject fruit = PoolManager.Instance.CreateUnitPrefabs(UnitID);
         if (fruit != null)
         {
-            // Y is fixed at -3.5 as requested
-            float fixedY = -3.5f;
+
             
             // X is limited to -2 to 0 as requested
             float randomX = Random.Range(-2f, 0f);

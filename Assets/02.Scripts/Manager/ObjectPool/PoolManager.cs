@@ -23,7 +23,7 @@ public class PoolManager : Singleton<PoolManager>
             if (unitData.Prefab != null)
             {
                 string tag = unitData.ID; // Already a string
-                ObjectPool.AddObjectPool(tag, unitData.Prefab, 20);
+                ObjectPool.AddObjectPool(tag, unitData.Prefab, 1);
                 
                 // Initialize UnitID for all newly created inactive instances
                 if (ObjectPool.PoolDictionary.TryGetValue(tag, out var list))

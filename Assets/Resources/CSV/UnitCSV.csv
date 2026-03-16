@@ -1,5 +1,9 @@
-﻿ID,Name,Type,Rarity,Description,Price,Image,Probability,Prefab,Damage,AttackSpeed
-1,Apple,0,Common,사과,50,Apple,0.3,Prefabs/Units/Apple,10,5
-2,Banana,0,Common,바나나,75,Banana,0.3,Prefabs/Units/Banana,20,3
-3,Melon,0,Uncommon,멜론,200,Melon,0.2,Prefabs/Units/Melon,30,1
-4,Carrot,0,Uncommon,당근,1200,Carrot,0.2,Prefabs/Units/Carrot,40,0.5
+ID,Name,Type,Rarity,Description,Price,Image,Probability,Prefab,Damage,AttackSpeed
+1,DemonSamurai,0,Common,도깨비장수,50,Apple,0.3,Prefabs/Units/DemonSamurai,10,5
+2,DualBlader,0,Common,쌍검,75,Banana,0.3,Prefabs/Units/DualBlader,20,3
+3,GiantBlade,0,Uncommon,대검,200,Melon,0.2,Prefabs/Units/GiantBlade,30,1
+4,Kunoichi,0,Uncommon,여검사,1200,Carrot,0.2,Prefabs/Units/Kunoichi,40,0.5
+5,OldSamurai,0,Uncommon,늙은이,1200,Carrot,0.2,Prefabs/Units/OldSamurai,40,0.5
+6,OniSamurai,0,Uncommon,장수,1200,Carrot,0.2,Prefabs/Units/OniSamurai,40,0.5
+7,Ronin,0,Uncommon,협객,1200,Carrot,0.2,Prefabs/Units/Ronin,40,0.5
+8,SamuraiArcher,0,Uncommon,궁수,1200,Carrot,0.2,Prefabs/Units/SamuraiArcher,40,0.5

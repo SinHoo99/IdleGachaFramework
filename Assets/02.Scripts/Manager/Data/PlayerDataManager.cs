@@ -125,7 +125,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
             NowPlayerData.DictionaryCollection.Clear();
         }
         
-        NowPlayerData.PlayerCoin = 1000;
+        NowPlayerData.PlayerCoin = 100000;
         
         InitializeInventory();
 
@@ -198,7 +198,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
             return false;
         }
 
-        NowPlayerData.PlayerCoin -= amount;
+       // NowPlayerData.PlayerCoin -= amount;
         
         // Notify systems that coins changed
         EventBus.Publish(GameEventType.OnInventoryUpdate);
