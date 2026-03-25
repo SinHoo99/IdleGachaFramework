@@ -4,8 +4,8 @@ using UnityEngine.Audio;
 public class GameManager : Singleton<GameManager>
 {
     #region Script Setup
-    [Header("Game Objects")]
-    [SerializeField] private PoolObject _bulletPrefabs;
+
+
     #endregion
 
     protected override void Awake()
@@ -89,10 +89,7 @@ public class GameManager : Singleton<GameManager>
     #endregion
 
     #region Data Accessors
-    public PoolObject GetBullet()
-    {
-        return _bulletPrefabs;
-    }
+    // Prefab accessors moved to PoolManager
     #endregion
 
     #region Sound Methods

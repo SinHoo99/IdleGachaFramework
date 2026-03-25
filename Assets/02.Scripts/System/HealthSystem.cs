@@ -15,12 +15,22 @@ public class HealthSystem : MonoBehaviour
     public bool IsDead => CurHP <= 0;
 
     /// <summary>
-    /// Initializes health values.
+    /// Resets current health to max health.
+    /// </summary>
+    public void InitHP()
+    {
+        CurHP = MaxHP;
+        OnChangeHP?.Invoke();
+    }
+
+    /// <summary>
+    /// Initializes health values with specific values.
     /// </summary>
     public void InitHP(float curHP, float maxHP)
     {
         MaxHP = maxHP;
         CurHP = Mathf.Clamp(curHP, 0, maxHP);
+        OnChangeHP?.Invoke();
     }
 
     /// <summary>

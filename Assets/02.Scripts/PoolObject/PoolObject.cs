@@ -20,6 +20,14 @@ public class PoolObject : MonoBehaviour
     }
 
     /// <summary>
+    /// Optional virtual method called when the object is spawned from the pool.
+    /// </summary>
+    public virtual void OnSpawn(Vector3 position, Quaternion rotation)
+    {
+        transform.SetPositionAndRotation(position, rotation);
+    }
+
+    /// <summary>
     /// Optional virtual method called when the object is returned to the pool.
     /// </summary>
     public virtual void OnReturnToPool()

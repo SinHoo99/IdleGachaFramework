@@ -3,7 +3,7 @@ using System.Collections;
 using UnityEngine;
 using DG.Tweening;
 
-public class Boss : MonoBehaviour
+public class Boss : MonoBehaviour, IDamageable
 {
     private GameManager GM => GameManager.Instance;
     private BossRuntimeData RuntimeData => BossDataManager.Instance?.BossRuntimeData;
@@ -126,16 +126,14 @@ public class Boss : MonoBehaviour
         _boxCollider.enabled = true;
     }
 
-    public void TakeDamage(float damage)
+    public void TakeDamage(float damage, Vector3 hitPosition)
     {
         if (_healthSystem != null && !_healthSystem.IsDead)
         {
             _healthSystem.TakeDamage(damage);
             if (RuntimeData != null) RuntimeData.CurrentHealth = _healthSystem.CurHP;
 
-            //Debug.Log($"[Boss] Took {damage} damage. Current HP: {_healthSystem.CurHP}");
-
-            TakeDamageEffect();
+            // TakeDamageEffect();
         }
     }
 

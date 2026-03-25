@@ -164,6 +164,41 @@ public class SpawnManager : Singleton<SpawnManager>
         Debug.Log($"[SpawnManager] Initialized field with {totalTypes} unit types sequentially.");
     }
 
+    [SerializeField] private Transform _enemySpawnPoint;
+    [SerializeField] private float _enemySpawnInterval = 3f;
+
+    private void Start()
+    {
+        // Start spawning enemies
+        StartCoroutine(EnemySpawnCoroutine());
+    }
+
+    private IEnumerator EnemySpawnCoroutine()
+    {
+        // Wait a bit before first spawn
+        yield return new WaitForSeconds(2f);
+
+        while (true)
+        {
+            SpawnEnemy();
+            yield return new WaitForSeconds(_enemySpawnInterval);
+        }
+    }
+
+    public void SpawnEnemy()
+    {
+        if (ObjectPool.Instance == null) return;
+
+        Vector3 spawnPos = _enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f);
+        
+        // Spawn Enemy from pool
+        var enemy = ObjectPool.Instance.Spawn<Enemy>(Tag.Enemy, spawnPos, Quaternion.identity);
+        if (enemy == null)
+        {
+            Debug.LogWarning("[SpawnManager] Failed to spawn Enemy. Check if pool is initialized for Tag.Enemy.");
+        }
+    }
+
     public Boss GetCurrentBoss()
     {
         if (_currentBoss == null)

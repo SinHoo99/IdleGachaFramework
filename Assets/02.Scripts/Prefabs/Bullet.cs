@@ -16,14 +16,25 @@ public class Bullet : PoolObject
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Hit Boss
-        if (collision.gameObject.layer == LayerMask.NameToLayer(Layer.Boss))
+        // Use GetComponentInParent to find IDamageable in case the collider is on a child object
+        var damageable = collision.GetComponentInParent<IDamageable>();
+        
+        if (damageable != null)
         {
-            if (collision.TryGetComponent<Boss>(out var boss))
-            {
-                boss.TakeDamage(_damage);
-                ReturnToPool();
-            }
+            damageable.TakeDamage(_damage, transform.position);
+            SpawnDamageText(_damage, transform.position);
+            ReturnToPool();
+        }
+    }
+
+    private void SpawnDamageText(float damage, Vector3 hitPosition)
+    {
+        if (ObjectPool.Instance == null) return;
+
+        var damageText = ObjectPool.Instance.Spawn<DamageText>(Tag.DamageText, hitPosition, Quaternion.identity);
+        if (damageText != null)
+        {
+            damageText.Setup(damage);
         }
     }
 
@@ -53,12 +64,10 @@ public class Bullet : PoolObject
     /// <summary>
     /// Initializes bullet properties when spawned from pool.
     /// </summary>
-    public void Initialize(Vector2 position, Vector2 direction, string ownerTag, float bulletDamage)
+    public void Setup(Vector2 direction, string ownerTag, float bulletDamage)
     {
         _ownerTag = ownerTag;
         _damage = bulletDamage;
-        
-        transform.position = position;
         
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
@@ -69,9 +78,17 @@ public class Bullet : PoolObject
         }
     }
 
+    public override void OnSpawn(Vector3 position, Quaternion rotation)
+    {
+        // Force Z position to 0 to ensure collision in 2D
+        Vector3 spawnPos = new Vector3(position.x, position.y, 0f);
+        base.OnSpawn(spawnPos, rotation);
+    }
+
     public override void OnReturnToPool()
     {
         base.OnReturnToPool();
         if (_rb != null) _rb.velocity = Vector2.zero;
     }
+
 }

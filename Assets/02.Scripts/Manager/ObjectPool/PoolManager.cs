@@ -6,6 +6,11 @@ public class PoolManager : Singleton<PoolManager>
     private GameManager GM => GameManager.Instance;
     protected ObjectPool ObjectPool => ObjectPool.Instance;
 
+    [Header("Global Prefabs")]
+    [SerializeField] private PoolObject _bulletPrefab;
+    [SerializeField] private PoolObject _damageTextPrefab;
+    [SerializeField] private PoolObject _enemyPrefab;
+
     #region Object Pool Initialization Logic
     /// <summary>
     /// Initializes object pools based on game data.
@@ -46,15 +51,24 @@ public class PoolManager : Singleton<PoolManager>
         }
 
         // Add bullet pool
-        var bulletPrefab = GameManager.Instance.GetBullet();
-        if (bulletPrefab != null)
+        if (_bulletPrefab != null)
         {
-            ObjectPool.AddObjectPool(Tag.Bullet, bulletPrefab, 50);
+            ObjectPool.AddObjectPool(Tag.Bullet, _bulletPrefab, 50);
             Debug.Log($"[PoolManager] Bullet pool created.");
         }
-        else
+
+        // Add DamageText pool
+        if (_damageTextPrefab != null)
         {
-            Debug.LogWarning("[PoolManager] Bullet prefab not found in GameManager. Bullet pool NOT created.");
+            ObjectPool.AddObjectPool(Tag.DamageText, _damageTextPrefab, 20);
+            Debug.Log($"[PoolManager] DamageText pool created.");
+        }
+
+        // Add Enemy pool
+        if (_enemyPrefab != null)
+        {
+            ObjectPool.AddObjectPool(Tag.Enemy, _enemyPrefab, 10);
+            Debug.Log($"[PoolManager] Enemy pool created.");
         }
 
         Debug.Log($"[PoolManager] Initialization complete. Total Unit pools created: {unitPoolsCreated}");

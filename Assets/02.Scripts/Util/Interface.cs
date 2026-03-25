@@ -11,3 +11,8 @@ public interface IShowAndHide
     Vector3 OriginalPosition { get; }
     void ShowAndHide();
 }
+
+public interface IDamageable
+{
+    void TakeDamage(float damage, Vector3 hitPosition);
+}

@@ -31,6 +31,24 @@ public class ObjectPool : Singleton<ObjectPool>
     }
 
     /// <summary>
+    /// Spawns an object from the pool with specific position and rotation.
+    /// Returns the specified component type.
+    /// </summary>
+    public T Spawn<T>(string tag, Vector3 position, Quaternion rotation) where T : Component
+    {
+        PoolObject obj = SpawnFromPool(tag);
+        if (obj != null)
+        {
+            obj.OnSpawn(position, rotation);
+            if (obj.TryGetComponent<T>(out var component))
+            {
+                return component;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Spawns an object from the pool. Creates a new one if none are available.
     /// </summary>
     public PoolObject SpawnFromPool(string tag)
@@ -41,21 +59,25 @@ public class ObjectPool : Singleton<ObjectPool>
             return null;
         }
 
+        PoolObject targetObj = null;
         foreach (var obj in list)
-
         {
             if (obj != null && !obj.gameObject.activeInHierarchy)
             {
-                obj.gameObject.SetActive(true);
-                return obj;
+                targetObj = obj;
+                break;
             }
         }
 
-        // Expand pool if all are active
-        PoolObject newObj = CreateNewObject(list[0]);
-        newObj.gameObject.SetActive(true);
-        list.Add(newObj);
-        return newObj;
+        if (targetObj == null)
+        {
+            // Expand pool if all are active
+            targetObj = CreateNewObject(list[0]);
+            list.Add(targetObj);
+        }
+
+        targetObj.gameObject.SetActive(true);
+        return targetObj;
     }
 
     /// <summary>
@@ -90,6 +112,9 @@ public class ObjectPool : Singleton<ObjectPool>
         {
             obj.OnReturnToPool();
             obj.gameObject.SetActive(false);
+            
+            // Re-parent to the pool transform to keep hierarchy clean
+            obj.transform.SetParent(this.transform);
         }
     }
 

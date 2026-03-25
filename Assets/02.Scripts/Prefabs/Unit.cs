@@ -84,16 +84,16 @@ public class Unit : PoolObject
     }
 
     #region Shooting Logic
-    public PoolObject CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
+    public Bullet CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
     {
         if (ObjectPool.Instance == null) return null;
 
-        PoolObject bulletObj = ObjectPool.Instance.SpawnFromPool(tag);
-        if (bulletObj != null && bulletObj.TryGetComponent<Bullet>(out var bullet))
+        var bullet = ObjectPool.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
+        if (bullet != null)
         {
             float damage = GetBulletDamage();
-            bullet.Initialize(position, direction, ownerTag, damage);
-            return bulletObj;
+            bullet.Setup(direction, ownerTag, damage);
+            return bullet;
         }
         return null;
     }
