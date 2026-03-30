@@ -34,7 +34,7 @@ public class HealthStatusUI : MonoBehaviour
         HPBar.maxValue = HealthSystem.MaxHP;
         HPBar.value = HealthSystem.CurHP;
         
-        Debug.Log($"[HealthStatusUI] HP Synchronized: {HealthSystem.CurHP} / {HealthSystem.MaxHP}");
+        //Debug.Log($"[HealthStatusUI] HP Synchronized: {HealthSystem.CurHP} / {HealthSystem.MaxHP}");
     }
     #endregion
 

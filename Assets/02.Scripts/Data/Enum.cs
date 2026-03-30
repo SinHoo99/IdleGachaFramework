@@ -38,6 +38,15 @@ public enum GameEventType
     OnEnemyDefeated
 }
 
+public enum PlayerState
+{
+    Idle,
+    Attack,
+    Parrying,
+    Hit,
+    Die
+}
+
 public enum GameState
 {
     Ready,

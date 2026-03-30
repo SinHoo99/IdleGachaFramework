@@ -3,9 +3,7 @@ using UnityEngine;
 public class BattleUIManager : Singleton<BattleUIManager>
 {
     [Header("UI Views")]
-    [SerializeField] private UI_BattlePanel _startPanel;
-    [SerializeField] private UI_BattlePanel _winPanel;
-    [SerializeField] private UI_BattlePanel _losePanel;
+    [SerializeField] private UI_BattlePanel _battlePanel;
 
     private void Start()
     {
@@ -13,11 +11,8 @@ public class BattleUIManager : Singleton<BattleUIManager>
         EventBus.Subscribe(GameEventType.OnStageClear, OnStageClear);
         EventBus.Subscribe(GameEventType.OnStageFail, OnStageFail);
 
-        // 2. Setup Panels
-        SetupPanels();
-
-        // 3. Show Start Panel initially
-        if (_startPanel != null) _startPanel.Show();
+        // 2. Show Start Panel initially
+        ShowStartPanel();
     }
 
     private void OnDestroy()
@@ -26,31 +21,44 @@ public class BattleUIManager : Singleton<BattleUIManager>
         EventBus.Unsubscribe(GameEventType.OnStageFail, OnStageFail);
     }
 
-    private void SetupPanels()
+    private void ShowStartPanel()
     {
-        if (_startPanel != null)
-        {
-            _startPanel.Setup(
-                "ADVENTURE", 
-                "Prepare for the next stage.", 
-                "START", 
-                () => StageManager.Instance.StartStage()
-            );
-        }
+        if (_battlePanel == null) return;
 
-        if (_winPanel != null)
+        // Ensure it's deactivated before Show() to prevent UIManager toggle-off logic
+        _battlePanel.gameObject.SetActive(false);
+
+        _battlePanel.Setup(
+            "ADVENTURE", 
+            "Prepare for the next stage.", 
+            "START", 
+            () => StageManager.Instance.StartStage()
+        );
+        _battlePanel.Show();
+    }
+
+    private void OnStageClear()
+    {
+        // If auto-playing, don't show the win panel
+        if (StageManager.Instance != null && StageManager.Instance.IsAutoPlay) return;
+        
+        if (_battlePanel != null)
         {
-            _winPanel.Setup(
+            _battlePanel.Setup(
                 "VICTORY!", 
                 "Stage Cleared! You've earned rewards.", 
                 "NEXT STAGE", 
                 () => StageManager.Instance.StartStage()
             );
+            _battlePanel.Show();
         }
+    }
 
-        if (_losePanel != null)
+    private void OnStageFail()
+    {
+        if (_battlePanel != null)
         {
-            _losePanel.Setup(
+            _battlePanel.Setup(
                 "DEFEAT", 
                 "The enemies breached your defense.", 
                 "RETRY", 
@@ -59,19 +67,7 @@ public class BattleUIManager : Singleton<BattleUIManager>
                     StageManager.Instance.StartStage();
                 }
             );
+            _battlePanel.Show();
         }
-    }
-
-    private void OnStageClear()
-    {
-        // If auto-playing, don't show the win panel
-        if (StageManager.Instance != null && StageManager.Instance.IsAutoPlay) return;
-        
-        if (_winPanel != null) _winPanel.Show();
-    }
-
-    private void OnStageFail()
-    {
-        if (_losePanel != null) _losePanel.Show();
     }
 }

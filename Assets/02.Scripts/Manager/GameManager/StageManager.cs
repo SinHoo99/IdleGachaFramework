@@ -9,10 +9,14 @@ public class StageManager : Singleton<StageManager>
     [SerializeField] private bool _isAutoPlay = false;
     [SerializeField] private int _enemiesPerStage = 5;
     [SerializeField] private float _spawnInterval = 2f;
+    [SerializeField] private int _winThreshold = 5;  // 5마리 잡으면 승리
+    [SerializeField] private int _loseThreshold = 5; // 5마리 놓치면 패배
 
     [Header("Current Progress")]
     private int _remainingEnemiesToSpawn;
     private int _activeEnemies;
+    private int _defeatedEnemies; // 처치한 수
+    private int _escapedEnemies;  // 놓친 수
     private GameState _currentState = GameState.Ready;
 
     public int CurrentStage => _currentStage;
@@ -28,48 +32,79 @@ public class StageManager : Singleton<StageManager>
     {
         if (_currentState == GameState.Playing) return;
 
-        _currentState = GameState.Playing;
-        _remainingEnemiesToSpawn = _enemiesPerStage + (_currentStage * 2); // Example scaling
-        _activeEnemies = 0;
+        // Cleanup before starting new stage
+        CleanupField();
 
-        Debug.Log($"[StageManager] Stage {_currentStage} Started!");
+        _currentState = GameState.Playing;
+        _remainingEnemiesToSpawn = 100; // 충분히 많이 스폰 (조건 달성 전까지)
+        _activeEnemies = 0;
+        _defeatedEnemies = 0;
+        _escapedEnemies = 0;
+
+        Debug.Log($"[StageManager] Stage {_currentStage} Started! (Win: {_winThreshold}, Lose: {_loseThreshold})");
         EventBus.Publish(GameEventType.OnStageStart);
         
         StartCoroutine(StageRoutine());
     }
 
+    private void CleanupField()
+    {
+        if (SpawnManager.Instance != null)
+        {
+            SpawnManager.Instance.ReturnAllUnitToPool(); 
+        }
+    }
+
     private IEnumerator StageRoutine()
     {
-        while (_remainingEnemiesToSpawn > 0)
+        while (_currentState == GameState.Playing)
         {
             SpawnManager.Instance.SpawnEnemy();
-            _remainingEnemiesToSpawn--;
             _activeEnemies++;
             yield return new WaitForSeconds(_spawnInterval);
         }
-
-        // Wait until all enemies are defeated
-        while (_activeEnemies > 0)
-        {
-            yield return null;
-        }
-
-        CompleteStage();
     }
 
     public void OnEnemyDefeated()
     {
+        if (_currentState != GameState.Playing) return;
+
         _activeEnemies--;
+        _defeatedEnemies++;
+        
+        Debug.Log($"[StageManager] Enemy Defeated: {_defeatedEnemies}/{_winThreshold}");
         EventBus.Publish(GameEventType.OnEnemyDefeated);
+
+        if (_defeatedEnemies >= _winThreshold)
+        {
+            CompleteStage();
+        }
+    }
+
+    public void OnEnemyEscaped()
+    {
+        if (_currentState != GameState.Playing) return;
+
+        _activeEnemies--;
+        _escapedEnemies++;
+
+        Debug.Log($"[StageManager] Enemy Escaped: {_escapedEnemies}/{_loseThreshold}");
+
+        if (_escapedEnemies >= _loseThreshold)
+        {
+            FailStage();
+        }
     }
 
     private void CompleteStage()
     {
+        if (_currentState != GameState.Playing) return;
+
         _currentState = GameState.Win;
         Debug.Log($"[StageManager] Stage {_currentStage} Cleared!");
-        EventBus.Publish(GameEventType.OnStageClear);
-
+        
         _currentStage++;
+        EventBus.Publish(GameEventType.OnStageClear);
 
         if (_isAutoPlay)
         {
@@ -88,15 +123,19 @@ public class StageManager : Singleton<StageManager>
 
     public void FailStage()
     {
+        if (_currentState != GameState.Playing) return;
+
         _currentState = GameState.Lose;
-        StopAllCoroutines();
+        StopAllCoroutines(); // Stop spawning and stage routine
+        
         Debug.Log("[StageManager] Stage Failed!");
         EventBus.Publish(GameEventType.OnStageFail);
     }
 
     public void ResetStage()
     {
-        _currentStage = 1;
+        _currentStage = 1; // Return to stage 1
         _currentState = GameState.Ready;
+        CleanupField();
     }
 }

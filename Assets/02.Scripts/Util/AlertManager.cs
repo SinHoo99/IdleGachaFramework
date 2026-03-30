@@ -6,7 +6,7 @@ public class AlertManager : Singleton<AlertManager>
 {
     [SerializeField] private GameObject alertObject;
     [SerializeField] private TextMeshProUGUI alertText;
-    
+
     private Coroutine _alertCoroutine;
 
     /// <summary>
