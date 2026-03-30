@@ -31,5 +31,18 @@ public enum GameEventType
     OnInventoryUpdate,
     OnDictionaryUpdate,
     OnBossDefeated,
-    OnGameStart
+    OnGameStart,
+    OnStageStart,
+    OnStageClear,
+    OnStageFail,
+    OnEnemyDefeated
+}
+
+public enum GameState
+{
+    Ready,
+    Playing,
+    Win,
+    Lose,
+    Paused
 }

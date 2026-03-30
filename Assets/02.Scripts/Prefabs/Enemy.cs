@@ -54,6 +54,10 @@ public class Enemy : PoolObject, IDamageable
 
     private void HandleDeath()
     {
+        if (StageManager.Instance != null)
+        {
+            StageManager.Instance.OnEnemyDefeated();
+        }
         ReturnToPool();
     }
 

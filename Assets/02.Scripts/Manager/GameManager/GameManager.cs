@@ -17,6 +17,9 @@ public class GameManager : Singleton<GameManager>
         InitializeComponents();
     }
 
+    private GameState _currentState = GameState.Ready;
+    public GameState CurrentState => _currentState;
+
     private void Start()
     {
         InitializeGame();
@@ -34,6 +37,18 @@ public class GameManager : Singleton<GameManager>
             SoundManager.Instance.Initialize();
             SoundManager.Instance.LoadOptionData();
         }
+
+        // 2.5 StageManager
+        if (StageManager.Instance != null)
+        {
+            // Initial state set by StageManager itself
+        }
+    }
+
+    public void SetGameState(GameState newState)
+    {
+        _currentState = newState;
+        Debug.Log($"[GameManager] Game State changed to: {newState}");
     }
 
     private void InitializeGame()

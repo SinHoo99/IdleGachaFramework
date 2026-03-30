@@ -165,25 +165,6 @@ public class SpawnManager : Singleton<SpawnManager>
     }
 
     [SerializeField] private Transform _enemySpawnPoint;
-    [SerializeField] private float _enemySpawnInterval = 3f;
-
-    private void Start()
-    {
-        // Start spawning enemies
-        StartCoroutine(EnemySpawnCoroutine());
-    }
-
-    private IEnumerator EnemySpawnCoroutine()
-    {
-        // Wait a bit before first spawn
-        yield return new WaitForSeconds(2f);
-
-        while (true)
-        {
-            SpawnEnemy();
-            yield return new WaitForSeconds(_enemySpawnInterval);
-        }
-    }
 
     public void SpawnEnemy()
     {
