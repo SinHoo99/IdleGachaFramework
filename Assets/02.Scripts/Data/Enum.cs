@@ -1,12 +1,8 @@
-public enum BossID
+public enum EntityType
 {
-    A = 1,
-    B,
-    C,
-    D,
-    E
+    Enemy,
+    Boss
 }
-
 
 public enum UnitIType
 {

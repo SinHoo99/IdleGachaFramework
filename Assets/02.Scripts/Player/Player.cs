@@ -2,10 +2,11 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class Player : Singleton<Player>
+public class Player : Singleton<Player>, IDamageable
 {
     [SerializeField] private Transform _firePoint;
     [SerializeField] private PlayerState _currentState = PlayerState.Idle;
+    [SerializeField] private GameObject _parryEffectPrefab; // 패링 성공 시 효과 프리팹
 
     [Header("Attack Settings")]
     [SerializeField] private float _attackRange = 5f;
@@ -14,6 +15,13 @@ public class Player : Singleton<Player>
     
     private Animator _animator;
     private bool _isParrying; // 독자적인 패링 상태 플래그
+
+    // Cached animator hashes
+    private readonly int _isIdleHash = Animator.StringToHash("isIdle");
+    private readonly int _isAttackingHash = Animator.StringToHash("isAttacking");
+    private readonly int _isHitHash = Animator.StringToHash("isHit");
+    private readonly int _isDieHash = Animator.StringToHash("isDie");
+    private readonly int _isParryingHash = Animator.StringToHash("isParrying");
 
     public PlayerState CurrentState => _currentState;
 
@@ -51,10 +59,27 @@ public class Player : Singleton<Player>
     /// <summary>
     /// UI 버튼 등 외부에서 호출할 패링 시작 메서드
     /// </summary>
-    public void OnParry()
+    public void StartParry()
     {
-        if (_currentState == PlayerState.Die) return;
-        StartCoroutine(PerformParry());
+        if (_currentState == PlayerState.Die || _isParrying) return;
+        
+        _isParrying = true;
+        UpdateAnimationState();
+        if (_parryEffectPrefab != null) _parryEffectPrefab.SetActive(true);
+        Debug.Log("<color=cyan>[Player] Parry Started (Independent of current state)</color>");
+    }
+
+    /// <summary>
+    /// 애니메이션 클립의 끝부분에 설정한 Animation Event에서 이 메서드를 호출해야 합니다.
+    /// </summary>
+    public void OnParryAnimationEnd()
+    {
+        if (!_isParrying) return;
+
+        _isParrying = false;
+        UpdateAnimationState();
+        if (_parryEffectPrefab != null) _parryEffectPrefab.SetActive(false);
+        Debug.Log("<color=cyan>[Player] Parry Ended via Animation Event</color>");
     }
 
     public void ChangeState(PlayerState newState)
@@ -84,9 +109,11 @@ public class Player : Singleton<Player>
                 StartCoroutine(AttackRoutine());
                 break;
             case PlayerState.Hit:
+                _isParrying = false; // 피격 시에는 패링 해제
                 StartCoroutine(HitRoutine());
                 break;
             case PlayerState.Die:
+                _isParrying = false;
                 HandleDie();
                 break;
         }
@@ -101,23 +128,26 @@ public class Player : Singleton<Player>
 
     private void UpdateAnimationState()
     {
-        SetAnimBool("isIdle", _currentState == PlayerState.Idle);
-        SetAnimBool("isAttacking", _currentState == PlayerState.Attack);
-        SetAnimBool("isHit", _currentState == PlayerState.Hit);
-        SetAnimBool("isDie", _currentState == PlayerState.Die);
-        SetAnimBool("isParrying", _isParrying); // Use the independent flag
+        if (_animator == null) return;
+
+        SafeSetBool(_isIdleHash, _currentState == PlayerState.Idle);
+        SafeSetBool(_isAttackingHash, _currentState == PlayerState.Attack);
+        SafeSetBool(_isHitHash, _currentState == PlayerState.Hit);
+        SafeSetBool(_isDieHash, _currentState == PlayerState.Die);
+        SafeSetBool(_isParryingHash, _isParrying); // Use the independent flag
     }
 
-    private void SetAnimBool(string paramName, bool value)
+    private void SafeSetBool(int hash, bool value)
     {
         if (_animator == null) return;
         
+        // Check if the parameter exists to avoid "Parameter does not exist" warning/error
         foreach (AnimatorControllerParameter param in _animator.parameters)
         {
-            if (param.name == paramName)
+            if (param.nameHash == hash)
             {
-                _animator.SetBool(paramName, value);
-                break;
+                _animator.SetBool(hash, value);
+                return;
             }
         }
     }
@@ -156,21 +186,6 @@ public class Player : Singleton<Player>
         ChangeState(PlayerState.Idle);
     }
 
-    private IEnumerator PerformParry()
-    {
-        if (_isParrying) yield break; // 중복 실행 방지
-
-        Debug.Log("<color=cyan>[Player] Parry Window Open</color>");
-        _isParrying = true;
-        UpdateAnimationState(); // Sync animation
-
-        yield return new WaitForSeconds(_parryWindow);
-
-        _isParrying = false;
-        UpdateAnimationState(); // Sync animation
-        Debug.Log("<color=cyan>[Player] Parry Window Closed</color>");
-    }
-
     private IEnumerator HitRoutine()
     {
         Debug.Log("[Player] Hit State!");
@@ -189,9 +204,9 @@ public class Player : Singleton<Player>
     #region Shooting Logic
     public Bullet CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
     {
-        if (ObjectPool.Instance == null) return null;
+        if (PoolManager.Instance == null) return null;
 
-        var bullet = ObjectPool.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
+        var bullet = PoolManager.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
         if (bullet != null)
         {
             float damage = UnityEngine.Random.Range(10f, 20f);
@@ -209,7 +224,7 @@ public class Player : Singleton<Player>
     }
     #endregion
 
-    public void OnDamaged(float damage)
+    public void TakeDamage(float damage, Vector3 hitPosition)
     {
         // 1. Check Parry First (Independent of current state)
         if (_isParrying)
@@ -221,7 +236,7 @@ public class Player : Singleton<Player>
 
         if (_currentState == PlayerState.Die) return;
 
-        Debug.Log($"[Player] Took {damage} damage");
+        Debug.Log($"[Player] Took {damage} damage at {hitPosition}");
         ChangeState(PlayerState.Hit);
     }
 }

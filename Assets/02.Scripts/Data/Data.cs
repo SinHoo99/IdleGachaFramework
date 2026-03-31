@@ -19,18 +19,42 @@ public class UnitData
 }
 #endregion
 
+#region Enemy Data
+[Serializable]
+public class EnemyData
+{
+    public int Stage;
+    public EntityType Type;
+    public string Name;
+    public int MaxHealth;
+    public int Count;
+    public bool CanMove;
+    public PoolObject Prefab; // Added for unique prefab support
+
+    public EnemyData(int stage, EntityType type, string name, int maxHealth, int count, bool canMove)
+    {
+        Stage = stage;
+        Type = type;
+        Name = name;
+        MaxHealth = maxHealth;
+        Count = count;
+        CanMove = canMove;
+    }
+}
+#endregion
+
 #region Boss Data
 [Serializable]
 public class BossData
 {
-    public BossID ID;
+    public string Name;
     public int MaxHealth;
     public string AnimationState;
     public int Reward;
 
-    public BossData(BossID id, int maxHealth, string animationState, int reward)
+    public BossData(string name, int maxHealth, string animationState, int reward)
     {
-        ID = id;
+        Name = name;
         MaxHealth = maxHealth;
         AnimationState = animationState;
         Reward = reward;
@@ -40,12 +64,12 @@ public class BossData
 [Serializable]
 public class BossRuntimeData
 {
-    public BossID CurrentBossID;
+    public string CurrentBossName;
     public float CurrentHealth;
 
-    public BossRuntimeData(BossID id, float currentHealth)
+    public BossRuntimeData(string name, float currentHealth)
     {
-        CurrentBossID = id;
+        CurrentBossName = name;
         CurrentHealth = currentHealth;
     }
 }

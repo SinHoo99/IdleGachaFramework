@@ -98,7 +98,6 @@ public class GameManager : Singleton<GameManager>
     {
         if (PlayerDataManager.Instance != null) PlayerDataManager.Instance.SavePlayerData();
         if (PrefabDataManager.Instance != null) PrefabDataManager.Instance.SavePrefabData();
-        if (BossDataManager.Instance != null) BossDataManager.Instance.SaveBossRuntimeData();
         if (SoundManager.Instance != null) SoundManager.Instance.SaveOptionData();
     }
     #endregion

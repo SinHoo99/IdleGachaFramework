@@ -10,6 +10,12 @@ public class DamageText : PoolObject
     private void Awake()
     {
         if (_damageText == null) _damageText = GetComponent<TextMeshPro>();
+        
+        // Remove CanvasRenderer if it exists to avoid TMP warnings in World Space
+        if (TryGetComponent<CanvasRenderer>(out var canvasRenderer))
+        {
+            Destroy(canvasRenderer);
+        }
     }
 
     public override void OnSpawn(Vector3 position, Quaternion rotation)
@@ -34,9 +40,10 @@ public class DamageText : PoolObject
         // Animation
         Sequence sequence = DOTween.Sequence();
 
-        // Calculate a small random X offset for a "floating" effect
+        // Calculate a small random X and Y offset for a "floating" effect
         float randomX = Random.Range(-0.5f, 0.5f);
-        Vector3 targetPosition = new Vector3(transform.position.x + randomX, transform.position.y + 2f, transform.position.z);
+        float randomY = Random.Range(1.5f, 2.5f);
+        Vector3 targetPosition = new Vector3(transform.position.x + randomX, transform.position.y + randomY, transform.position.z);
 
         // Move up and slightly sideways
         sequence.Join(transform.DOMove(targetPosition, 0.7f).SetEase(Ease.OutQuad));
@@ -56,9 +63,9 @@ public class DamageText : PoolObject
 
     private void ReturnToPool()
     {
-        if (ObjectPool.Instance != null)
+        if (PoolManager.Instance != null)
         {
-            ObjectPool.Instance.ReturnObject(Tag.DamageText, this);
+            PoolManager.Instance.ReturnObject(Tag.DamageText, this);
         }
         else
         {

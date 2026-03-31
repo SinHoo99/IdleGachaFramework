@@ -22,7 +22,7 @@ public class AlertManager : Singleton<AlertManager>
         if (_alertCoroutine != null) StopCoroutine(_alertCoroutine);
         _alertCoroutine = StartCoroutine(AlertCo());
     }
-
+    
     private IEnumerator AlertCo()
     {
         yield return new WaitForSecondsRealtime(2f);

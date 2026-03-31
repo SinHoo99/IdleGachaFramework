@@ -5,15 +5,15 @@ using UnityEngine.U2D;
 public class DataManager : Singleton<DataManager>
 {
     private readonly Dictionary<string, UnitData> _unitDatas = new();
-    private readonly Dictionary<BossID, BossData> _bossDatas = new();
+    private readonly Dictionary<int, EnemyData> _enemyDatas = new();
 
     public IReadOnlyDictionary<string, UnitData> UnitDatas => _unitDatas;
-    public IReadOnlyDictionary<BossID, BossData> BossDatas => _bossDatas;
+    public IReadOnlyDictionary<int, EnemyData> EnemyDatas => _enemyDatas;
 
     public void Initialize()
     {
         LoadUnitData();
-        LoadBossData();
+        LoadEnemyData();
     }
 
     public UnitData GetUnitData(string id)
@@ -21,9 +21,9 @@ public class DataManager : Singleton<DataManager>
         return _unitDatas.TryGetValue(id, out var data) ? data : null;
     }
 
-    public BossData GetBossData(BossID id)
+    public EnemyData GetEnemyData(int stage)
     {
-        return _bossDatas.TryGetValue(id, out var data) ? data : null;
+        return _enemyDatas.TryGetValue(stage, out var data) ? data : null;
     }
 
     #region Unit Data Loading
@@ -81,32 +81,44 @@ public class DataManager : Singleton<DataManager>
     }
     #endregion
 
-    #region Boss Data Loading
-    private void LoadBossData()
+    #region Enemy Data Loading
+    private void LoadEnemyData()
     {
-        _bossDatas.Clear();
-        var bossCSV = CSVReader.Read(ResourcesPath.BossCSV);
-        if (bossCSV == null || bossCSV.Count == 0)
+        _enemyDatas.Clear();
+        var enemyCSV = CSVReader.Read(ResourcesPath.EnemyCSV);
+        if (enemyCSV == null || enemyCSV.Count == 0)
         {
-            Debug.LogError($"[DataManager] Failed to load BossData CSV from {ResourcesPath.BossCSV} or it is empty.");
+            Debug.LogError($"[DataManager] Failed to load EnemyData CSV from {ResourcesPath.EnemyCSV} or it is empty.");
             return;
         }
 
-        foreach (var row in bossCSV)
+        foreach (var row in enemyCSV)
         {
-            var bossID = (BossID)ParseInt(row[Data.ID]);
-            var maxHealth = ParseInt(row[Data.MaxHealth]);
-            var animationState = row[Data.AnimationState];
-            var reward = ParseInt(row[Data.Reward]);
+            int stage = ParseInt(row[Data.Stage]);
+            string typeStr = row[Data.Type];
+            EntityType type = (typeStr == "Boss") ? EntityType.Boss : EntityType.Enemy;
+            string name = row[Data.Name];
+            int maxHealth = ParseInt(row[Data.MaxHealth]);
+            int count = ParseInt(row[Data.Count]);
+            bool canMove = ParseBool(row[Data.CanMove]);
 
-            var bossData = new BossData(bossID, maxHealth, animationState, reward);
+            var enemyData = new EnemyData(stage, type, name, maxHealth, count, canMove);
 
-            if (!_bossDatas.ContainsKey(bossData.ID))
+            // Load Prefab for this specific enemy (Path: Resources/Prefabs/Enemy/Name)
+            string prefabPath = $"Prefabs/Enemy/{name}";
+            enemyData.Prefab = Resources.Load<PoolObject>(prefabPath);
+
+            if (enemyData.Prefab == null)
             {
-                _bossDatas.Add(bossData.ID, bossData);
+                Debug.LogWarning($"[DataManager] Prefab not found for Enemy '{name}' at Resources/{prefabPath}");
+            }
+
+            if (!_enemyDatas.ContainsKey(stage))
+            {
+                _enemyDatas.Add(stage, enemyData);
             }
         }
-        Debug.Log($"[DataManager] Successfully loaded {_bossDatas.Count} BossDatas.");
+        Debug.Log($"[DataManager] Successfully loaded {_enemyDatas.Count} EnemyDatas.");
     }
     #endregion
 
@@ -119,6 +131,13 @@ public class DataManager : Singleton<DataManager>
     private float ParseFloat(string value)
     {
         return float.TryParse(value, out float result) ? result : 0f;
+    }
+
+    private bool ParseBool(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return false;
+        string lower = value.ToLower();
+        return lower == "true" || lower == "1" || lower == "yes";
     }
     #endregion
 }

@@ -10,7 +10,7 @@ public class Unit : PoolObject
 
     [SerializeField] private Transform _firePoint;
 
-    private Boss _boss;
+    private Enemy _targetEnemy;
     private Coroutine _shootCoroutine;
     private Vector3 _baseScale;
     private Vector3 _targetScale;
@@ -32,7 +32,7 @@ public class Unit : PoolObject
 
     private void OnEnable()
     {
-        InitializeBossReference();
+        UpdateTarget();
       //  UpdateScale();
 
         if (string.IsNullOrEmpty(UnitID))
@@ -70,25 +70,21 @@ public class Unit : PoolObject
         }
     }
 
-    private void InitializeBossReference()
+    private void UpdateTarget()
     {
-        if (_boss == null && SpawnManager.Instance != null)
-        {
-            _boss = SpawnManager.Instance.GetCurrentBoss();
-        }
+        if (_targetEnemy != null && _targetEnemy.gameObject.activeInHierarchy) return;
 
-        if (_boss == null)
-        {
-            _boss = FindFirstObjectByType<Boss>();
-        }
+        // Find the first active Enemy in the scene. 
+        // In a more complex game, you might want to find the closest one or prioritize bosses.
+        _targetEnemy = FindObjectOfType<Enemy>();
     }
 
     #region Shooting Logic
     public Bullet CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
     {
-        if (ObjectPool.Instance == null) return null;
+        if (PoolManager.Instance == null) return null;
 
-        var bullet = ObjectPool.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
+        var bullet = PoolManager.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
         if (bullet != null)
         {
             float damage = GetBulletDamage();
@@ -102,6 +98,7 @@ public class Unit : PoolObject
     {
         while (true)
         {
+            UpdateTarget();
             float attackSpeed = GetAttackSpeed();
             float randomVariance = Random.Range(-0.3f, 0.3f);
             yield return new WaitForSeconds(Mathf.Max(0.1f, attackSpeed + randomVariance));
@@ -111,15 +108,16 @@ public class Unit : PoolObject
 
     private void ShootBullet()
     {
-        if (_boss == null) return;
+        UpdateTarget();
+        if (_targetEnemy == null) return;
 
-        // Check if boss is active and visible
-        if (_boss.TryGetComponent<SpriteRenderer>(out var bossSprite) && (!bossSprite.enabled || !bossSprite.gameObject.activeInHierarchy))
+        // Check if enemy is active and visible
+        if (!_targetEnemy.gameObject.activeInHierarchy)
         {
             return;
         }
 
-        Vector2 direction = (_boss.transform.position - _firePoint.position).normalized;
+        Vector2 direction = (_targetEnemy.transform.position - _firePoint.position).normalized;
         CreateBullet(Tag.Bullet, _firePoint.position, direction, gameObject.tag);
         
         //PlayShootEffects();

@@ -16,16 +16,18 @@ public class PlayerStatusUI : Singleton<PlayerStatusUI>
 
     private void OnEnable()
     {
-        Boss.OnBossDefeated += HandleBossDefeated;
         EventBus.Subscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
         EventBus.Subscribe(GameEventType.OnDataReset, UpdateCoinUI);
+        EventBus.Subscribe(GameEventType.OnEnemyDefeated, UpdateCoinUI); // Update coin when enemy/boss is defeated
+        EventBus.Subscribe(GameEventType.OnStageStart, BossStatus);
     }
 
     private void OnDisable()
     {
-        Boss.OnBossDefeated -= HandleBossDefeated;
         EventBus.Unsubscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
         EventBus.Unsubscribe(GameEventType.OnDataReset, UpdateCoinUI);
+        EventBus.Unsubscribe(GameEventType.OnEnemyDefeated, UpdateCoinUI);
+        EventBus.Unsubscribe(GameEventType.OnStageStart, BossStatus);
     }
 
     public void UpdateCoinUI()
@@ -39,15 +41,20 @@ public class PlayerStatusUI : Singleton<PlayerStatusUI>
 
     public void BossStatus()
     {
-        if (BossDataManager.Instance != null && BossDataManager.Instance.BossRuntimeData != null)
+        if (StageManager.Instance != null)
         {
             if (BossText != null)
-                BossText.text = $"Boss Stage: {BossDataManager.Instance.BossRuntimeData.CurrentBossID}";
+            {
+                var enemyData = DataManager.Instance.GetEnemyData(StageManager.Instance.CurrentStage);
+                if (enemyData != null && enemyData.Type == EntityType.Boss)
+                {
+                    BossText.text = $"Boss: {enemyData.Name}";
+                }
+                else
+                {
+                    BossText.text = $"Stage: {StageManager.Instance.CurrentStage}";
+                }
+            }
         }
-    }
-
-    private void HandleBossDefeated(int reward)
-    {
-        UpdateCoinUI();
     }
 }

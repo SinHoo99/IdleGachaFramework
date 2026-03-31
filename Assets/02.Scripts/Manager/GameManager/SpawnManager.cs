@@ -4,14 +4,12 @@ using UnityEngine;
 
 public class SpawnManager : Singleton<SpawnManager>
 {
-    [SerializeField] private GameObject boss;
-    public GameObject Boss => boss;
+    [SerializeField] private GameObject bossPrefab;
+    public GameObject BossPrefab => bossPrefab;
 
     [SerializeField] private float minSpawnDistance = -2f;
     [SerializeField] private float maxSpawnDistance = 0f;
     [SerializeField] private float fixedY = -3.5f;
-
-    private Boss _currentBoss;
 
     private Dictionary<string, Unit> _activeUnits = new();
 
@@ -41,15 +39,6 @@ public class SpawnManager : Singleton<SpawnManager>
             PrefabDataManager.Instance.SavePrefabData();
         }
 
-        // Force cleanup any remaining active objects just in case
-        Unit[] lingeringUnits = FindObjectsByType<Unit>(FindObjectsSortMode.None);
-        foreach (var unit in lingeringUnits)
-        {
-            unit.gameObject.SetActive(false);
-            unit.OnReturnToPool();
-        }
-
-        GetCurrentBoss()?.ResetBossData();
         Debug.Log("[SpawnManager] Visual reset complete and saved.");
     }
 
@@ -100,9 +89,9 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         if (_activeUnits.TryGetValue(UnitID, out var unit))
         {
-            if (ObjectPool.Instance != null)
+            if (PoolManager.Instance != null)
             {
-                ObjectPool.Instance.ReturnObject(UnitID, unit);
+                PoolManager.Instance.ReturnObject(UnitID, unit);
             }
             else
             {
@@ -114,28 +103,18 @@ public class SpawnManager : Singleton<SpawnManager>
 
     public void ReturnAllUnitToPool()
     {
-        // Try standard pool return first
-        if (ObjectPool.Instance != null)
-        {
-            ObjectPool.Instance.ReturnAllObjects();
-        }
+        if (PoolManager.Instance == null) return;
 
-        _activeUnits.Clear();
-
-        // Backup cleanup: Find all active Unit objects in the scene and return them to pool
-        Unit[] activeUnits = FindObjectsByType<Unit>(FindObjectsSortMode.None);
-        int forceReturned = 0;
-        foreach (var unit in activeUnits)
+        foreach (var unit in _activeUnits.Values)
         {
-            if (unit.gameObject.activeInHierarchy)
+            if (unit != null)
             {
-                unit.gameObject.SetActive(false);
-                unit.OnReturnToPool();
-                forceReturned++;
+                PoolManager.Instance.ReturnObject(unit.UnitID, unit);
             }
         }
 
-        Debug.Log($"[SpawnManager] Cleaned all fruits. Pool return + {forceReturned} units force deactivated.");
+        _activeUnits.Clear();
+        Debug.Log("[SpawnManager] Cleaned all units from field using tracked dictionary.");
     }
 
     /// <summary>
@@ -165,27 +144,29 @@ public class SpawnManager : Singleton<SpawnManager>
     }
 
     [SerializeField] private Transform _enemySpawnPoint;
+    [SerializeField] private Transform _bossSpawnPoint;
 
-    public void SpawnEnemy()
+    public void SpawnEnemy(int stage)
     {
-        if (ObjectPool.Instance == null) return;
+        if (PoolManager.Instance == null) return;
 
-        Vector3 spawnPos = _enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f);
+        var enemyData = DataManager.Instance.GetEnemyData(stage);
+        if (enemyData == null) return;
+
+        Vector3 spawnPos = (enemyData.Type == EntityType.Boss && _bossSpawnPoint != null) 
+            ? _bossSpawnPoint.position 
+            : (_enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f));
         
-        // Spawn Enemy from pool
-        var enemy = ObjectPool.Instance.Spawn<Enemy>(Tag.Enemy, spawnPos, Quaternion.identity);
-        if (enemy == null)
+        // Spawn the specific Enemy prefab from its own pool (tagged by Name)
+        var enemy = PoolManager.Instance.Spawn<Enemy>(enemyData.Name, spawnPos, Quaternion.identity);
+        if (enemy != null)
         {
-            Debug.LogWarning("[SpawnManager] Failed to spawn Enemy. Check if pool is initialized for Tag.Enemy.");
+            // Update Data & Behaviors (Health, UI, Type, CanMove)
+            enemy.Setup(enemyData);
         }
-    }
-
-    public Boss GetCurrentBoss()
-    {
-        if (_currentBoss == null)
+        else
         {
-            _currentBoss = FindAnyObjectByType<Boss>();
+            Debug.LogWarning($"[SpawnManager] Failed to spawn Enemy '{enemyData.Name}' from pool for stage {stage}.");
         }
-        return _currentBoss;
     }
 }

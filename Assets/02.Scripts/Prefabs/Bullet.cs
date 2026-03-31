@@ -29,9 +29,9 @@ public class Bullet : PoolObject
 
     private void SpawnDamageText(float damage, Vector3 hitPosition)
     {
-        if (ObjectPool.Instance == null) return;
+        if (PoolManager.Instance == null) return;
 
-        var damageText = ObjectPool.Instance.Spawn<DamageText>(Tag.DamageText, hitPosition, Quaternion.identity);
+        var damageText = PoolManager.Instance.Spawn<DamageText>(Tag.DamageText, hitPosition, Quaternion.identity);
         if (damageText != null)
         {
             damageText.Setup(damage);
@@ -51,9 +51,9 @@ public class Bullet : PoolObject
     /// </summary>
     public void ReturnToPool()
     {
-        if (ObjectPool.Instance != null)
+        if (PoolManager.Instance != null)
         {
-            ObjectPool.Instance.ReturnObject(Tag.Bullet, this);
+            PoolManager.Instance.ReturnObject(Tag.Bullet, this);
         }
         else
         {

@@ -13,12 +13,15 @@ public static class Data
     public const string AnimationState = "AnimationState";
     public const string AttackSpeed = "AttackSpeed";
     public const string Reward = "Reward";
+    public const string Stage = "Stage";
+    public const string Count = "Count";
+    public const string CanMove = "CanMove";
 }
 
 public static class ResourcesPath
 {
     public const string UnitCSV = "CSV/UnitCSV";
-    public const string BossCSV = "CSV/BossCSV";
+    public const string EnemyCSV = "CSV/EnemyCSV";
     public const string CSVSprites = "SpriteAtlas/Units";
 }
 

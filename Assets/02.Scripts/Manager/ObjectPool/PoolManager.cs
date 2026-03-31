@@ -21,13 +21,14 @@ public class PoolManager : Singleton<PoolManager>
         if (ObjectPool == null || dataManager == null) return;
 
         int unitPoolsCreated = 0;
+        int enemyPoolsCreated = 0;
         
-        // Use pre-loaded UnitDatas from DataManager
+        // 1. Initialize Unit Pools
         foreach (var unitData in dataManager.UnitDatas.Values)
         {
             if (unitData.Prefab != null)
             {
-                string tag = unitData.ID; // Already a string
+                string tag = unitData.ID; 
                 ObjectPool.AddObjectPool(tag, unitData.Prefab, 1);
                 
                 // Initialize UnitID for all newly created inactive instances
@@ -41,37 +42,41 @@ public class PoolManager : Singleton<PoolManager>
                         }
                     }
                 }
-                
                 unitPoolsCreated++;
-            }
-            else
-            {
-                Debug.LogWarning($"[PoolManager] Skipping pool for {unitData.ID}: Prefab is null.");
             }
         }
 
-        // Add bullet pool
+        // 2. Initialize Enemy Pools (One for each unique enemy type)
+        foreach (var enemyData in dataManager.EnemyDatas.Values)
+        {
+            if (enemyData.Prefab != null)
+            {
+                // Use the Name from CSV as the pool tag
+                string tag = enemyData.Name;
+                
+                // Avoid creating duplicate pools for the same enemy name across stages
+                if (!ObjectPool.PoolDictionary.ContainsKey(tag))
+                {
+                    // Pre-spawn a reasonable amount (e.g., 5 per type, or more for common enemies)
+                    int initialSize = (enemyData.Type == EntityType.Boss) ? 1 : 5;
+                    ObjectPool.AddObjectPool(tag, enemyData.Prefab, initialSize);
+                    enemyPoolsCreated++;
+                }
+            }
+        }
+
+        // 3. Global Pools (Bullets, etc.)
         if (_bulletPrefab != null)
         {
             ObjectPool.AddObjectPool(Tag.Bullet, _bulletPrefab, 50);
-            Debug.Log($"[PoolManager] Bullet pool created.");
         }
 
-        // Add DamageText pool
         if (_damageTextPrefab != null)
         {
             ObjectPool.AddObjectPool(Tag.DamageText, _damageTextPrefab, 20);
-            Debug.Log($"[PoolManager] DamageText pool created.");
         }
 
-        // Add Enemy pool
-        if (_enemyPrefab != null)
-        {
-            ObjectPool.AddObjectPool(Tag.Enemy, _enemyPrefab, 10);
-            Debug.Log($"[PoolManager] Enemy pool created.");
-        }
-
-        Debug.Log($"[PoolManager] Initialization complete. Total Unit pools created: {unitPoolsCreated}");
+        Debug.Log($"[PoolManager] Initialization complete. Units: {unitPoolsCreated}, Enemies: {enemyPoolsCreated}");
     }
 
     /// <summary>
@@ -101,8 +106,32 @@ public class PoolManager : Singleton<PoolManager>
             return fruit;
         }
 
-        Debug.LogWarning($"[PoolManager] Spawned {tag} object does not have a Unit component.");
+    Debug.LogWarning($"[PoolManager] Spawned {tag} object does not have a Unit component.");
         return fruit;
+    }
+    #endregion
+
+    #region Generic Pooling Interface
+    /// <summary>
+    /// Spawns an object from the pool using the primary ObjectPool instance.
+    /// </summary>
+    public T Spawn<T>(string tag, Vector3 position, Quaternion rotation) where T : Component
+    {
+        if (ObjectPool == null) return null;
+        return ObjectPool.Spawn<T>(tag, position, rotation);
+    }
+
+    /// <summary>
+    /// Returns an object to the pool using the primary ObjectPool instance.
+    /// </summary>
+    public void ReturnObject(string tag, PoolObject obj)
+    {
+        if (ObjectPool == null)
+        {
+            obj.gameObject.SetActive(false);
+            return;
+        }
+        ObjectPool.ReturnObject(tag, obj);
     }
     #endregion
 }

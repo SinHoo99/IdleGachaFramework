@@ -36,6 +36,8 @@ public class StageManager : Singleton<StageManager>
         CleanupField();
 
         _currentState = GameState.Playing;
+        if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Playing);
+
         _remainingEnemiesToSpawn = 100; // 충분히 많이 스폰 (조건 달성 전까지)
         _activeEnemies = 0;
         _defeatedEnemies = 0;
@@ -57,11 +59,40 @@ public class StageManager : Singleton<StageManager>
 
     private IEnumerator StageRoutine()
     {
-        while (_currentState == GameState.Playing)
+        var enemyData = DataManager.Instance.GetEnemyData(_currentStage);
+        if (enemyData == null)
         {
-            SpawnManager.Instance.SpawnEnemy();
-            _activeEnemies++;
-            yield return new WaitForSeconds(_spawnInterval);
+            Debug.LogError($"[StageManager] No EnemyData found for stage {_currentStage}!");
+            yield break;
+        }
+
+        // Use Count from CSV as the win condition
+        _winThreshold = enemyData.Count;
+        _remainingEnemiesToSpawn = enemyData.Count;
+        _defeatedEnemies = 0;
+        _escapedEnemies = 0;
+
+        if (enemyData.Type == EntityType.Boss)
+        {
+            // Spawn Boss (using the unified SpawnEnemy logic)
+            SpawnManager.Instance.SpawnEnemy(_currentStage);
+            _activeEnemies = 1;
+            _remainingEnemiesToSpawn = 0;
+        }
+        else
+        {
+            // Standard enemy spawning behavior limited by Count
+            while (_remainingEnemiesToSpawn > 0 && _currentState == GameState.Playing)
+            {
+                SpawnManager.Instance.SpawnEnemy(_currentStage);
+                _activeEnemies++;
+                _remainingEnemiesToSpawn--;
+                
+                if (_remainingEnemiesToSpawn > 0)
+                {
+                    yield return new WaitForSeconds(_spawnInterval);
+                }
+            }
         }
     }
 
@@ -101,6 +132,8 @@ public class StageManager : Singleton<StageManager>
         if (_currentState != GameState.Playing) return;
 
         _currentState = GameState.Win;
+        if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Win);
+        
         Debug.Log($"[StageManager] Stage {_currentStage} Cleared!");
         
         _currentStage++;
@@ -126,6 +159,8 @@ public class StageManager : Singleton<StageManager>
         if (_currentState != GameState.Playing) return;
 
         _currentState = GameState.Lose;
+        if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Lose);
+        
         StopAllCoroutines(); // Stop spawning and stage routine
         
         Debug.Log("[StageManager] Stage Failed!");
@@ -136,6 +171,8 @@ public class StageManager : Singleton<StageManager>
     {
         _currentStage = 1; // Return to stage 1
         _currentState = GameState.Ready;
+        if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Ready);
+        
         CleanupField();
     }
 }

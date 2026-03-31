@@ -23,7 +23,7 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             {
                 if (_instance == null)
                 {
-                    _instance = (T)FindAnyObjectByType(typeof(T));
+                    _instance = (T)FindObjectOfType(typeof(T));
 
                     if (_instance == null)
                     {
