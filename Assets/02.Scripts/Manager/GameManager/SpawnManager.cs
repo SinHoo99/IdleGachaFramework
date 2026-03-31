@@ -4,14 +4,14 @@ using UnityEngine;
 
 public class SpawnManager : Singleton<SpawnManager>
 {
-    [SerializeField] private GameObject bossPrefab;
-    public GameObject BossPrefab => bossPrefab;
-
-    [SerializeField] private float minSpawnDistance = -2f;
-    [SerializeField] private float maxSpawnDistance = 0f;
     [SerializeField] private float fixedY = -3.5f;
+    [SerializeField] private Transform _enemySpawnPoint;
+    [SerializeField] private Transform _bossSpawnPoint;
 
     private Dictionary<string, Unit> _activeUnits = new();
+    private List<Enemy> _activeEnemies = new();
+
+    public IReadOnlyList<Enemy> ActiveEnemies => _activeEnemies;
 
     private void OnEnable()
     {
@@ -28,12 +28,12 @@ public class SpawnManager : Singleton<SpawnManager>
         Debug.Log("[SpawnManager] Received OnDataReset event. Clearing all visuals...");
         StopAllCoroutines();
         ReturnAllUnitToPool();
+        ReturnAllEnemiesToPool();
         
-        // Clear active units tracking
+        // Clear tracking collections
         _activeUnits.Clear();
+        _activeEnemies.Clear();
 
-        // Immediately update prefab data to reflect that there are no active units on field
-        // This prevents old, out-of-range positions from being loaded later.
         if (PrefabDataManager.Instance != null)
         {
             PrefabDataManager.Instance.SavePrefabData();
@@ -42,15 +42,11 @@ public class SpawnManager : Singleton<SpawnManager>
         Debug.Log("[SpawnManager] Visual reset complete and saved.");
     }
 
-    /// <summary>
-    /// Spawns a fruit from the object pool near the boss.
-    /// If it already exists, calls UpgradeEffect on the existing unit.
-    /// </summary>
+    #region Unit Management
     public void SpawnUnitFromPool(string UnitID)
     {
         if (PoolManager.Instance == null) return;
 
-        // If unit already exists on field, don't spawn a new one, just upgrade it
         if (_activeUnits.TryGetValue(UnitID, out var existingUnit) && existingUnit.gameObject.activeInHierarchy)
         {
             existingUnit.UpgradeEffect();
@@ -60,17 +56,11 @@ public class SpawnManager : Singleton<SpawnManager>
         PoolObject fruit = PoolManager.Instance.CreateUnitPrefabs(UnitID);
         if (fruit != null)
         {
-
-            
-            // X is limited to -2 to 0 as requested
             float randomX = Random.Range(-2f, 0f);
             Vector3 spawnPosition = new Vector3(randomX, fixedY, 0);
 
             fruit.transform.position = spawnPosition;
             fruit.transform.rotation = Quaternion.identity;
-            
-            // Removed forcing localScale to Vector3.one to preserve prefab scale
-
             fruit.gameObject.SetActive(true);
 
             if (fruit.TryGetComponent<Unit>(out var unit))
@@ -78,10 +68,6 @@ public class SpawnManager : Singleton<SpawnManager>
                 unit.SetupUnit(UnitID);
                 _activeUnits[UnitID] = unit;
             }
-        }
-        else
-        {
-            Debug.LogWarning($"[SpawnManager] Failed to spawn {UnitID} from pool.");
         }
     }
 
@@ -107,45 +93,13 @@ public class SpawnManager : Singleton<SpawnManager>
 
         foreach (var unit in _activeUnits.Values)
         {
-            if (unit != null)
-            {
-                PoolManager.Instance.ReturnObject(unit.UnitID, unit);
-            }
+            if (unit != null) PoolManager.Instance.ReturnObject(unit.UnitID, unit);
         }
-
         _activeUnits.Clear();
-        Debug.Log("[SpawnManager] Cleaned all units from field using tracked dictionary.");
     }
+    #endregion
 
-    /// <summary>
-    /// Spawns all fruits from the saved inventory data.
-    /// Call this during game initialization.
-    /// </summary>
-    public void SpawnInitialUnits()
-    {
-        StartCoroutine(SpawnInitialUnitsCoroutine());
-    }
-
-    private IEnumerator SpawnInitialUnitsCoroutine()
-    {
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory == null) yield break;
-
-        int totalTypes = 0;
-        foreach (var item in PlayerDataManager.Instance.NowPlayerData.Inventory.Values)
-        {
-            if (item.Amount > 0)
-            {
-                SpawnUnitFromPool(item.ID);
-                totalTypes++;
-                yield return new WaitForSeconds(0.2f); // Spawn one by one with delay
-            }
-        }
-        Debug.Log($"[SpawnManager] Initialized field with {totalTypes} unit types sequentially.");
-    }
-
-    [SerializeField] private Transform _enemySpawnPoint;
-    [SerializeField] private Transform _bossSpawnPoint;
-
+    #region Enemy Management
     public void SpawnEnemy(int stage)
     {
         if (PoolManager.Instance == null) return;
@@ -157,16 +111,37 @@ public class SpawnManager : Singleton<SpawnManager>
             ? _bossSpawnPoint.position 
             : (_enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f));
         
-        // Spawn the specific Enemy prefab from its own pool (tagged by Name)
         var enemy = PoolManager.Instance.Spawn<Enemy>(enemyData.Name, spawnPos, Quaternion.identity);
         if (enemy != null)
         {
-            // Update Data & Behaviors (Health, UI, Type, CanMove)
             enemy.Setup(enemyData);
-        }
-        else
-        {
-            Debug.LogWarning($"[SpawnManager] Failed to spawn Enemy '{enemyData.Name}' from pool for stage {stage}.");
+            _activeEnemies.Add(enemy);
         }
     }
+
+    public void UnregisterEnemy(Enemy enemy)
+    {
+        if (_activeEnemies.Contains(enemy))
+        {
+            _activeEnemies.Remove(enemy);
+        }
+    }
+
+    public void ReturnAllEnemiesToPool()
+    {
+        if (PoolManager.Instance == null) return;
+
+        // Use a temporary list to avoid modification during enumeration
+        var enemiesToReturn = new List<Enemy>(_activeEnemies);
+        foreach (var enemy in enemiesToReturn)
+        {
+            if (enemy != null)
+            {
+                // Internal Enemy.HandleDeath or ReturnToPool should handle unregistering
+                PoolManager.Instance.ReturnObject(enemy.gameObject.name.Replace("(Clone)", "").Trim(), enemy);
+            }
+        }
+        _activeEnemies.Clear();
+    }
+    #endregion
 }

@@ -86,6 +86,11 @@ public class Enemy : PoolObject, IDamageable
 
     private void HandleDeath()
     {
+        if (SpawnManager.Instance != null)
+        {
+            SpawnManager.Instance.UnregisterEnemy(this);
+        }
+
         if (StageManager.Instance != null)
         {
             StageManager.Instance.OnEnemyDefeated();
@@ -112,6 +117,11 @@ public class Enemy : PoolObject, IDamageable
 
     private void ReturnToPool()
     {
+        if (SpawnManager.Instance != null)
+        {
+            SpawnManager.Instance.UnregisterEnemy(this);
+        }
+
         if (PoolManager.Instance != null && !string.IsNullOrEmpty(_enemyName))
         {
             PoolManager.Instance.ReturnObject(_enemyName, this);

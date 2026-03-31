@@ -74,9 +74,16 @@ public class Unit : PoolObject
     {
         if (_targetEnemy != null && _targetEnemy.gameObject.activeInHierarchy) return;
 
-        // Find the first active Enemy in the scene. 
-        // In a more complex game, you might want to find the closest one or prioritize bosses.
-        _targetEnemy = FindObjectOfType<Enemy>();
+        // Use SpawnManager's active enemy list for much better performance
+        if (SpawnManager.Instance != null && SpawnManager.Instance.ActiveEnemies.Count > 0)
+        {
+            // Pick the first one for now, could be improved to find closest
+            _targetEnemy = SpawnManager.Instance.ActiveEnemies[0];
+        }
+        else
+        {
+            _targetEnemy = null;
+        }
     }
 
     #region Shooting Logic

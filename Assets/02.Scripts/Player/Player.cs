@@ -15,6 +15,8 @@ public class Player : Singleton<Player>, IDamageable
     
     private Animator _animator;
     private bool _isParrying; // 독자적인 패링 상태 플래그
+    private float _idleCheckTimer = 0f;
+    private const float IDLE_CHECK_INTERVAL = 0.1f;
 
     // Cached animator hashes
     private readonly int _isIdleHash = Animator.StringToHash("isIdle");
@@ -45,7 +47,12 @@ public class Player : Singleton<Player>, IDamageable
         switch (_currentState)
         {
             case PlayerState.Idle:
-                HandleIdle();
+                _idleCheckTimer += Time.deltaTime;
+                if (_idleCheckTimer >= IDLE_CHECK_INTERVAL)
+                {
+                    _idleCheckTimer = 0f;
+                    HandleIdle();
+                }
                 break;
             case PlayerState.Attack:
                 break;
