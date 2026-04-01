@@ -216,7 +216,7 @@ public class Player : Singleton<Player>, IDamageable
         var bullet = PoolManager.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
         if (bullet != null)
         {
-            float damage = UnityEngine.Random.Range(10f, 20f);
+            float damage = UnityEngine.Random.Range(50f, 60f);
             bullet.Setup(direction, ownerTag, damage);
             return bullet;
         }

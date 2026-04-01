@@ -172,6 +172,7 @@ GameObject:
   - component: {fileID: 7708719190609635462}
   - component: {fileID: 4692368364419793909}
   - component: {fileID: 2117048851582469550}
+  - component: {fileID: 1585070471850292815}
   m_Layer: 10
   m_Name: DemonSamurai
   m_TagString: Enemy
@@ -264,6 +265,22 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &1585070471850292815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3477293166710335759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e5bc50e8336159b4f90b706d70d252b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _patterns:
+  - {fileID: 11400000, guid: 358fa1b9865b64f4a8763b398bf816fd, type: 2}
+  _isLooping: 1
+  _randomize: 0
 --- !u!1 &3510870268470874465
 GameObject:
   m_ObjectHideFlags: 0

@@ -5,6 +5,7 @@ using UnityEngine;
 public class SpawnManager : Singleton<SpawnManager>
 {
     [SerializeField] private float fixedY = -3.5f;
+    [SerializeField] private float _bossXOffset = -2f; // Offset to bring stationary bosses on-screen
     [SerializeField] private Transform _enemySpawnPoint;
     [SerializeField] private Transform _bossSpawnPoint;
 
@@ -107,9 +108,16 @@ public class SpawnManager : Singleton<SpawnManager>
         var enemyData = DataManager.Instance.GetEnemyData(stage);
         if (enemyData == null) return;
 
-        Vector3 spawnPos = (enemyData.Type == EntityType.Boss && _bossSpawnPoint != null) 
-            ? _bossSpawnPoint.position 
-            : (_enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f));
+        Vector3 spawnPos;
+        if (enemyData.Type == EntityType.Boss && _bossSpawnPoint != null)
+        {
+            // Apply X offset for bosses to bring them on-screen
+            spawnPos = _bossSpawnPoint.position + new Vector3(_bossXOffset, 0f, 0f);
+        }
+        else
+        {
+            spawnPos = (_enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f));
+        }
         
         var enemy = PoolManager.Instance.Spawn<Enemy>(enemyData.Name, spawnPos, Quaternion.identity);
         if (enemy != null)
@@ -142,6 +150,34 @@ public class SpawnManager : Singleton<SpawnManager>
             }
         }
         _activeEnemies.Clear();
+    }
+    #endregion
+
+    #region Initial Spawning
+    /// <summary>
+    /// Spawns all units from the saved inventory data.
+    /// Call this during game initialization.
+    /// </summary>
+    public void SpawnInitialUnits()
+    {
+        StartCoroutine(SpawnInitialUnitsCoroutine());
+    }
+
+    private IEnumerator SpawnInitialUnitsCoroutine()
+    {
+        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory == null) yield break;
+
+        int totalTypes = 0;
+        foreach (var item in PlayerDataManager.Instance.NowPlayerData.Inventory.Values)
+        {
+            if (item.Amount > 0)
+            {
+                SpawnUnitFromPool(item.ID);
+                totalTypes++;
+                yield return new WaitForSeconds(0.2f); // Spawn one by one with delay
+            }
+        }
+        Debug.Log($"[SpawnManager] Initialized field with {totalTypes} unit types sequentially.");
     }
     #endregion
 }

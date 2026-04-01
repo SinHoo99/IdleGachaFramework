@@ -12,16 +12,13 @@ public class DictionaryManager : Singleton<DictionaryManager>
 
     private void Start()
     {
-        if (DataManager.Instance == null || ScoreUpdater.Instance == null)
+        if (DataManager.Instance == null)
         {
-            Debug.LogError("[DictionaryManager] DataManager or ScoreUpdater is missing.");
+            Debug.LogError("[DictionaryManager] DataManager is missing.");
             return;
         }
 
         InitializeDictionary(DataManager.Instance.UnitDatas);
-
-        // Subscribe to fruit collection events
-        ScoreUpdater.Instance.OnUnitCollected += UpdateDictionaryUI;
     }
 
     private void OnEnable()
@@ -38,10 +35,6 @@ public class DictionaryManager : Singleton<DictionaryManager>
 
     private void OnDestroy()
     {
-        if (ScoreUpdater.Instance != null)
-        {
-            ScoreUpdater.Instance.OnUnitCollected -= UpdateDictionaryUI;
-        }
     }
 
     /// <summary>

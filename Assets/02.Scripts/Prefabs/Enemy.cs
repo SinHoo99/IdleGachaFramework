@@ -50,6 +50,12 @@ public class Enemy : PoolObject, IDamageable
             if (_rb != null) _rb.velocity = Vector2.zero;
         }
 
+        // AI Logic
+        if (TryGetComponent<EnemyAI>(out var ai))
+        {
+            ai.StartAI();
+        }
+
         // Boss-specific initialization (e.g., UI connection)
         if (_type == EntityType.Boss)
         {

@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class ScoreUpdater : Singleton<ScoreUpdater>
 {
-    public event Action<string> OnUnitCollected;
-
     #region Unit Logic
     /// <summary>
     /// Adds a fruit to the player's collection.
@@ -31,19 +29,13 @@ public class ScoreUpdater : Singleton<ScoreUpdater>
         // Save progress
         PlayerDataManager.Instance.SavePlayerData();
 
-        // Update physical unit or play upgrade effect
+        // Update physical unit (SpawnManager handles if it should spawn or upgrade)
         if (SpawnManager.Instance != null)
             SpawnManager.Instance.SpawnUnitFromPool(UnitID);
 
-        // Update UI with new Level
-        if (UnitUIManager.Instance != null)
-            UnitUIManager.Instance.UpdateOrCreateUnitUI(UnitID, inventory[UnitID].Amount);
-
-        // Notify systems
+        // Notify systems - UI components should subscribe to these events
         EventBus.Publish(GameEventType.OnInventoryUpdate);
         EventBus.Publish(GameEventType.OnDictionaryUpdate);
-
-        OnUnitCollected?.Invoke(UnitID);
 
         Debug.Log($"[ScoreUpdater] {UnitID} Leveled up. Current Level: {inventory[UnitID].Amount}");
     }

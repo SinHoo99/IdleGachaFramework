@@ -66,9 +66,12 @@ public class StageManager : Singleton<StageManager>
             yield break;
         }
 
-        // Use Count from CSV as the win condition
-        _winThreshold = enemyData.Count;
-        _remainingEnemiesToSpawn = enemyData.Count;
+        // Use Count from CSV as the win condition (Temporarily set to 5 for testing)
+        // _winThreshold = enemyData.Count;
+        // _remainingEnemiesToSpawn = enemyData.Count;
+        _winThreshold = 5; 
+        _remainingEnemiesToSpawn = 5; 
+
         _defeatedEnemies = 0;
         _escapedEnemies = 0;
 
