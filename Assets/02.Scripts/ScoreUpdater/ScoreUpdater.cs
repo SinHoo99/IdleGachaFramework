@@ -94,8 +94,8 @@ public class ScoreUpdater : Singleton<ScoreUpdater>
 
         if (PlayerDataManager.Instance != null && PlayerDataManager.Instance.TrySpendCoin(100))
         {
-            if (PlayerStatusUI.Instance != null)
-                PlayerStatusUI.Instance.UpdateCoinUI();
+            // if (PlayerStatusUI.Instance != null)
+            //     PlayerStatusUI.Instance.UpdateCoinUI();
                 
             AddRandomUnit(); 
             

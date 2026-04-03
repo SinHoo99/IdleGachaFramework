@@ -14,13 +14,19 @@ public class Bullet : PoolObject
         _animator = GetComponent<Animator>();
     }
 
+    private bool _isHit = false;
+
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        if (_isHit) return;
+
         // Use GetComponentInParent to find IDamageable in case the collider is on a child object
         var damageable = collision.GetComponentInParent<IDamageable>();
         
         if (damageable != null)
         {
+            _isHit = true; // Mark as hit immediately
+            Debug.Log($"[Bullet] Hit target: {collision.gameObject.name} at {transform.position}. Bullet Instance ID: {gameObject.GetInstanceID()}");
             damageable.TakeDamage(_damage, transform.position);
             SpawnDamageText(_damage, transform.position);
             ReturnToPool();
@@ -80,6 +86,7 @@ public class Bullet : PoolObject
 
     public override void OnSpawn(Vector3 position, Quaternion rotation)
     {
+        _isHit = false; // Reset hit flag on spawn
         // Force Z position to 0 to ensure collision in 2D
         Vector3 spawnPos = new Vector3(position.x, position.y, 0f);
         base.OnSpawn(spawnPos, rotation);

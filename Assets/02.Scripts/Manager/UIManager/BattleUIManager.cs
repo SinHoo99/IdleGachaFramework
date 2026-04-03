@@ -5,8 +5,20 @@ public class BattleUIManager : Singleton<BattleUIManager>
     [Header("UI Views")]
     [SerializeField] private UI_BattlePanel _battlePanel;
 
+    protected override void Awake()
+    {
+        base.Awake();
+        Debug.Log("[BattleUIManager] Awake called.");
+        if (_battlePanel == null)
+        {
+            Debug.LogError("[BattleUIManager] _battlePanel is NOT assigned in the Inspector!");
+        }
+    }
+
     private void Start()
     {
+        Debug.Log("[BattleUIManager] Start called.");
+        
         // 1. Subscribe to Events
         EventBus.Subscribe(GameEventType.OnStageClear, OnStageClear);
         EventBus.Subscribe(GameEventType.OnStageFail, OnStageFail);
@@ -23,7 +35,12 @@ public class BattleUIManager : Singleton<BattleUIManager>
 
     private void ShowStartPanel()
     {
-        if (_battlePanel == null) return;
+        Debug.Log("[BattleUIManager] Attempting to ShowStartPanel...");
+        if (_battlePanel == null) 
+        {
+            Debug.LogError("[BattleUIManager] Cannot show Start Panel because _battlePanel is null!");
+            return;
+        }
 
         // Ensure it's deactivated before Show() to prevent UIManager toggle-off logic
         _battlePanel.gameObject.SetActive(false);
@@ -32,7 +49,10 @@ public class BattleUIManager : Singleton<BattleUIManager>
             "ADVENTURE", 
             "Prepare for the next stage.", 
             "START", 
-            () => StageManager.Instance.StartStage()
+            () => {
+                Debug.Log("[BattleUIManager] Action Button: StartStage called.");
+                StageManager.Instance.StartStage();
+            }
         );
         _battlePanel.Show();
     }

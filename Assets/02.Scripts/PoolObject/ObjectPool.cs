@@ -142,6 +142,17 @@ public class ObjectPool : Singleton<ObjectPool>
     private PoolObject CreateNewObject(PoolObject prefab)
     {
         PoolObject obj = Instantiate(prefab, transform);
+        
+        // TMP 월드 공간 텍스트의 CanvasRenderer 경고 방지
+        if (obj.GetComponent<TMPro.TextMeshPro>() != null)
+        {
+            var canvasRenderer = obj.GetComponent<CanvasRenderer>();
+            if (canvasRenderer != null)
+            {
+                DestroyImmediate(canvasRenderer);
+            }
+        }
+
         obj.gameObject.SetActive(false);
         return obj;
     }

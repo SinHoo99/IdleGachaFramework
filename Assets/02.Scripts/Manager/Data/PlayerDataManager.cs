@@ -106,6 +106,45 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         Debug.Log("[PlayerDataManager] Dictionary collection has been reset.");
     }
 
+    public event Action<float, float> OnExpChanged;
+    public event Action<int> OnLevelChanged;
+
+    #region Experience & Leveling Logic
+    public void GainExp(float amount)
+    {
+        if (NowPlayerData == null) return;
+
+        NowPlayerData.CurrentExp += amount;
+        Debug.Log($"[PlayerDataManager] Gained {amount} EXP. Current: {NowPlayerData.CurrentExp}/{NowPlayerData.MaxExp}");
+
+        while (NowPlayerData.CurrentExp >= NowPlayerData.MaxExp)
+        {
+            LevelUp();
+        }
+
+        OnExpChanged?.Invoke(NowPlayerData.CurrentExp, NowPlayerData.MaxExp);
+    }
+
+    private void LevelUp()
+    {
+        NowPlayerData.CurrentExp -= NowPlayerData.MaxExp;
+        NowPlayerData.Level++;
+
+        // 레벨업 공식 (간단한 선형 또는 곡선형 성장)
+        NowPlayerData.MaxExp = Mathf.RoundToInt(100 * Mathf.Pow(1.2f, NowPlayerData.Level - 1));
+        
+        // 능력치 상승
+        NowPlayerData.Damage += 5f;          // 레벨당 데미지 +5
+        NowPlayerData.MaxHP += 10f;          // 레벨당 최대 체력 +10
+        NowPlayerData.AttackRange += 0.05f;  // 레벨당 사거리 +0.05
+
+        Debug.Log($"<color=yellow>[PlayerDataManager] LEVEL UP! Level: {NowPlayerData.Level}</color>");
+        
+        OnLevelChanged?.Invoke(NowPlayerData.Level);
+        SavePlayerData();
+    }
+    #endregion
+
     #region Data Modification
     public void DestroyData()
     {

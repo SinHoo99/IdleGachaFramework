@@ -1,60 +1,61 @@
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
 
-public class PlayerStatusUI : Singleton<PlayerStatusUI>
+public class PlayerStatusUI : MonoBehaviour
 {
-    public TextMeshProUGUI CoinText;
-    public TextMeshProUGUI BossText;
+    [Header("Experience UI")]
+    [SerializeField] private Slider _expSlider;
+    [SerializeField] private TextMeshProUGUI _expText;
+    [SerializeField] private TextMeshProUGUI _levelText;
 
     private void Start()
     {
-        UpdateCoinUI();
-        BossStatus();
-    }
-
-    private void OnEnable()
-    {
-        EventBus.Subscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
-        EventBus.Subscribe(GameEventType.OnDataReset, UpdateCoinUI);
-        EventBus.Subscribe(GameEventType.OnEnemyDefeated, UpdateCoinUI); // Update coin when enemy/boss is defeated
-        EventBus.Subscribe(GameEventType.OnStageStart, BossStatus);
-    }
-
-    private void OnDisable()
-    {
-        EventBus.Unsubscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
-        EventBus.Unsubscribe(GameEventType.OnDataReset, UpdateCoinUI);
-        EventBus.Unsubscribe(GameEventType.OnEnemyDefeated, UpdateCoinUI);
-        EventBus.Unsubscribe(GameEventType.OnStageStart, BossStatus);
-    }
-
-    public void UpdateCoinUI()
-    {
-        if (PlayerDataManager.Instance != null && PlayerDataManager.Instance.NowPlayerData != null)
+        if (PlayerDataManager.Instance != null)
         {
-            if (CoinText != null)
-                CoinText.text = $"{PlayerDataManager.Instance.NowPlayerData.PlayerCoin}";
+            // 이벤트 구독
+            PlayerDataManager.Instance.OnExpChanged += UpdateExpUI;
+            PlayerDataManager.Instance.OnLevelChanged += UpdateLevelUI;
+
+            // 초기 데이터 설정
+            var data = PlayerDataManager.Instance.NowPlayerData;
+            if (data != null)
+            {
+                UpdateExpUI(data.CurrentExp, data.MaxExp);
+                UpdateLevelUI(data.Level);
+            }
         }
     }
 
-    public void BossStatus()
+    private void OnDestroy()
     {
-        if (StageManager.Instance != null)
+        // 앱 종료 중이 아닐 때만 이벤트 해제 시도
+        if (PlayerDataManager.Instance != null)
         {
-            if (BossText != null)
-            {
-                var enemyData = DataManager.Instance.GetEnemyData(StageManager.Instance.CurrentStage);
-                if (enemyData != null && enemyData.Type == EntityType.Boss)
-                {
-                    BossText.text = $"Boss: {enemyData.Name}";
-                }
-                else
-                {
-                    BossText.text = $"Stage: {StageManager.Instance.CurrentStage}";
-                }
-            }
+            PlayerDataManager.Instance.OnExpChanged -= UpdateExpUI;
+            PlayerDataManager.Instance.OnLevelChanged -= UpdateLevelUI;
+        }
+    }
+
+    private void UpdateExpUI(float currentExp, float maxExp)
+    {
+        if (_expSlider != null)
+        {
+            _expSlider.maxValue = maxExp;
+            _expSlider.value = currentExp;
+        }
+
+        if (_expText != null)
+        {
+            _expText.text = $"{currentExp:F0} / {maxExp:F0}";
+        }
+    }
+
+    private void UpdateLevelUI(int level)
+    {
+        if (_levelText != null)
+        {
+            _levelText.text = $"LV. {level}";
         }
     }
 }

@@ -131,6 +131,16 @@ public class PlayerData
     public Dictionary<string, bool> DictionaryCollection = new();
     public DateTime LastCollectedTime;
     public int PlayerCoin = 1000;
+
+    // 성장 데이터 추가
+    public int Level = 1;
+    public float CurrentExp = 0;
+    public float MaxExp = 100; // 1레벨 기준 필요 경험치
+
+    // 전투 능력치 (레벨에 따라 변함)
+    public float Damage = 50f;
+    public float AttackRange = 5f;
+    public float MaxHP = 100f;
 }
 
 [Serializable]
