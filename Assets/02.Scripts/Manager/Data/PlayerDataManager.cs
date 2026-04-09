@@ -10,11 +10,12 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 
     public void Initialize()
     {
-        LoadAllData();
+        // LoadAllData(); // 로딩 주석 처리
+        NowPlayerData = new PlayerData(); // 항상 새로운 데이터로 시작
         InitializeInventory();
     }
 
-    #region Inventory Initialization
+    #region 인벤토리 초기화
     public void InitializeInventory()
     {
         if (NowPlayerData == null)
@@ -48,16 +49,18 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     }
     #endregion
 
-    #region Save/Load Data
+    #region 데이터 저장/로드
     public void SavePlayerData()
     {
         if (NowPlayerData == null) return;
 
         NowPlayerData.LastCollectedTime = DateTime.Now;
+        /*
         if (SaveManager.Instance != null)
         {
             SaveManager.Instance.SaveData(NowPlayerData);
         }
+        */
     }
 
     public bool LoadPlayerData()
@@ -85,13 +88,13 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     #endregion
 
     /// <summary>
-    /// Resets all fruit collection status in the dictionary to false.
+    /// 도감의 모든 유닛 수집 상태를 false로 초기화합니다.
     /// </summary>
     public void ResetDictionaryData()
     {
         if (NowPlayerData == null || NowPlayerData.DictionaryCollection == null) return;
 
-        // Set all collected status to false
+        // 모든 수집 상태를 false로 설정
         var keys = new List<string>(NowPlayerData.DictionaryCollection.Keys);
         foreach (var id in keys)
         {
@@ -100,22 +103,22 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 
         SavePlayerData();
 
-        // Notify systems that dictionary data has changed
+        // 도감 데이터가 변경되었음을 시스템에 알림
         EventBus.Publish(GameEventType.OnDictionaryUpdate);
 
-        Debug.Log("[PlayerDataManager] Dictionary collection has been reset.");
+        Debug.Log("[PlayerDataManager] 도감 수집 데이터가 초기화되었습니다.");
     }
 
     public event Action<float, float> OnExpChanged;
     public event Action<int> OnLevelChanged;
 
-    #region Experience & Leveling Logic
+    #region 경험치 및 레벨업 로직
     public void GainExp(float amount)
     {
         if (NowPlayerData == null) return;
 
         NowPlayerData.CurrentExp += amount;
-        Debug.Log($"[PlayerDataManager] Gained {amount} EXP. Current: {NowPlayerData.CurrentExp}/{NowPlayerData.MaxExp}");
+        Debug.Log($"[PlayerDataManager] {amount} EXP 획득. 현재: {NowPlayerData.CurrentExp}/{NowPlayerData.MaxExp}");
 
         while (NowPlayerData.CurrentExp >= NowPlayerData.MaxExp)
         {
@@ -145,12 +148,38 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     }
     #endregion
 
-    #region Data Modification
+    public void ApplyCardEffect(CardData data)
+    {
+        if (NowPlayerData == null || data == null) return;
+
+        switch (data.effectType)
+        {
+            case CardEffectType.Damage:
+                NowPlayerData.Damage += data.value;
+                break;
+            case CardEffectType.MaxHP:
+                NowPlayerData.MaxHP += data.value;
+                // 현재 체력 회복도 같이 해주면 좋습니다 (옵션)
+                GetComponent<HealthSystem>()?.Heal(data.value); 
+                break;
+            case CardEffectType.AttackRange:
+                NowPlayerData.AttackRange += data.value;
+                break;
+            case CardEffectType.AttackSpeed:
+                // 향후 추가될 공격 속도 로직 반영
+                break;
+        }
+
+        Debug.Log($"<color=cyan>[PlayerData] Applied Card: {data.cardName} (+{data.value})</color>");
+        SavePlayerData();
+    }
+
+    #region 데이터 수정
     public void DestroyData()
     {
         if (NowPlayerData == null) return;
 
-        // Force reset all inventory amounts to 0
+        // 모든 인벤토리 수량을 강제로 0으로 초기화
         if (NowPlayerData.Inventory != null)
         {
             foreach (var item in NowPlayerData.Inventory.Values)
@@ -168,18 +197,18 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         
         InitializeInventory();
 
-        // Save the reset data to file immediately
+        // 초기화된 데이터를 즉시 파일에 저장
         SavePlayerData();
         
-        // Notify all systems that data has been completely reset
+        // 데이터가 완전히 초기화되었음을 모든 시스템에 알림
         EventBus.Publish(GameEventType.OnDataReset);
         EventBus.Publish(GameEventType.OnInventoryUpdate);
         
-        Debug.Log("[PlayerDataManager] All player data has been DESTROYED and saved. All amounts set to 0.");
+        Debug.Log("[PlayerDataManager] 모든 플레이어 데이터가 파괴되고 저장되었습니다. 모든 수량이 0으로 설정되었습니다.");
     }
 
     /// <summary>
-    /// Adds a fruit to the player's collection dictionary.
+    /// 플레이어의 도감 딕셔너리에 유닛을 추가합니다.
     /// </summary>
     public void CollectUnit(string unitID)
     {
@@ -188,14 +217,14 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         if (!NowPlayerData.DictionaryCollection.TryGetValue(unitID, out bool isCollected) || !isCollected)
         {
             NowPlayerData.DictionaryCollection[unitID] = true;
-            Debug.Log($"[PlayerDataManager] New fruit collected: {unitID}");
+            Debug.Log($"[PlayerDataManager] 새로운 유닛 수집됨: {unitID}");
             SavePlayerData();
         }
     }
 
     /// <summary>
-    /// Attempts to sell a unit from inventory.
-    /// Returns true if successful.
+    /// 인벤토리에서 유닛 판매를 시도합니다.
+    /// 성공하면 true를 반환합니다.
     /// </summary>
     public bool TrySellUnit(string id, int amount)
     {
@@ -204,28 +233,28 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         var unitData = DataManager.Instance.GetUnitData(id);
         if (unitData == null)
         {
-            Debug.LogWarning($"[PlayerDataManager] Unit data for {id} not found.");
+            Debug.LogWarning($"[PlayerDataManager] {id}에 대한 유닛 데이터를 찾을 수 없습니다.");
             return false;
         }
 
         if (!NowPlayerData.Inventory.TryGetValue(id, out var collectedUnit) || collectedUnit.Amount < amount)
         {
-            Debug.LogWarning($"[PlayerDataManager] Not enough {id} to sell.");
+            Debug.LogWarning($"[PlayerDataManager] 판매할 {id} 수량이 부족합니다.");
             return false;
         }
 
         collectedUnit.Amount -= amount;
         NowPlayerData.PlayerCoin += unitData.Price;
         
-        // Notify systems that inventory or coins changed
+        // 인벤토리 또는 코인이 변경되었음을 시스템에 알림
         EventBus.Publish(GameEventType.OnInventoryUpdate);
         
         return true;
     }
 
     /// <summary>
-    /// Attempts to spend a certain amount of coins.
-    /// Returns true if successful.
+    /// 특정 금액의 코인 소모를 시도합니다.
+    /// 성공하면 true를 반환합니다.
     /// </summary>
     public bool TrySpendCoin(int amount)
     {
@@ -233,13 +262,13 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 
         if (NowPlayerData.PlayerCoin < amount)
         {
-            Debug.LogWarning($"[PlayerDataManager] Not enough coins. Required: {amount}, Current: {NowPlayerData.PlayerCoin}");
+            Debug.LogWarning($"[PlayerDataManager] 코인이 부족합니다. 필요량: {amount}, 현재량: {NowPlayerData.PlayerCoin}");
             return false;
         }
 
        // NowPlayerData.PlayerCoin -= amount;
         
-        // Notify systems that coins changed
+        // 코인이 변경되었음을 시스템에 알림
         EventBus.Publish(GameEventType.OnInventoryUpdate);
         
         return true;

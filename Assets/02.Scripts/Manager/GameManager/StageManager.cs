@@ -32,7 +32,7 @@ public class StageManager : Singleton<StageManager>
     {
         if (_currentState == GameState.Playing) return;
 
-        // Cleanup before starting new stage
+        // 새 스테이지를 시작하기 전에 필드 정리
         CleanupField();
 
         _currentState = GameState.Playing;
@@ -66,7 +66,7 @@ public class StageManager : Singleton<StageManager>
             yield break;
         }
 
-        // Use Count from CSV as the win condition (Temporarily set to 5 for testing)
+        // CSV의 Count를 승리 조건으로 사용 (테스트를 위해 임시로 5로 설정)
         // _winThreshold = enemyData.Count;
         // _remainingEnemiesToSpawn = enemyData.Count;
         _winThreshold = 5; 
@@ -77,14 +77,14 @@ public class StageManager : Singleton<StageManager>
 
         if (enemyData.Type == EntityType.Boss)
         {
-            // Spawn Boss (using the unified SpawnEnemy logic)
+            // 보스 생성 (통합된 SpawnEnemy 로직 사용)
             SpawnManager.Instance.SpawnEnemy(_currentStage);
             _activeEnemies = 1;
             _remainingEnemiesToSpawn = 0;
         }
         else
         {
-            // Standard enemy spawning behavior limited by Count
+            // Count에 의해 제한되는 일반적인 적 생성 동작
             while (_remainingEnemiesToSpawn > 0 && _currentState == GameState.Playing)
             {
                 SpawnManager.Instance.SpawnEnemy(_currentStage);
@@ -150,7 +150,7 @@ public class StageManager : Singleton<StageManager>
 
     private IEnumerator AutoPlayNextStage()
     {
-        yield return new WaitForSeconds(3f); // Delay before next stage
+        yield return new WaitForSeconds(3f); // 다음 스테이지까지의 지연 시간
         if (_isAutoPlay && _currentState == GameState.Win)
         {
             StartStage();
@@ -164,7 +164,7 @@ public class StageManager : Singleton<StageManager>
         _currentState = GameState.Lose;
         if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Lose);
         
-        StopAllCoroutines(); // Stop spawning and stage routine
+        StopAllCoroutines(); // 생성 및 스테이지 루틴 중지
         
         Debug.Log("[StageManager] Stage Failed!");
         EventBus.Publish(GameEventType.OnStageFail);
@@ -172,7 +172,7 @@ public class StageManager : Singleton<StageManager>
 
     public void ResetStage()
     {
-        _currentStage = 1; // Return to stage 1
+        _currentStage = 1; // 1스테이지로 돌아감
         _currentState = GameState.Ready;
         if (GameManager.Instance != null) GameManager.Instance.SetGameState(GameState.Ready);
         

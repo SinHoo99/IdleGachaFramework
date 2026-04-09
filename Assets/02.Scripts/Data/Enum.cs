@@ -51,3 +51,11 @@ public enum GameState
     Lose,
     Paused
 }
+
+public enum CardEffectType
+{
+    Damage,
+    MaxHP,
+    AttackRange,
+    AttackSpeed
+}

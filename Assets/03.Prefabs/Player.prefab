@@ -185,7 +185,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2414952256487049520, guid: a121651d273e008409ada35dbec77f39, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5033643207678072971, guid: a121651d273e008409ada35dbec77f39, type: 3}
       propertyPath: m_LocalScale.x
@@ -238,13 +238,28 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2414952256487049520, guid: a121651d273e008409ada35dbec77f39, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5521472244519533628}
   m_SourcePrefab: {fileID: 100100000, guid: a121651d273e008409ada35dbec77f39, type: 3}
 --- !u!1 &2570490348969467664 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2414952256487049520, guid: a121651d273e008409ada35dbec77f39, type: 3}
   m_PrefabInstance: {fileID: 157508417355077152}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5521472244519533628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2570490348969467664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2004384ff31d1a74b83c283fb7ee6eb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &5184912839774621355 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5033643207678072971, guid: a121651d273e008409ada35dbec77f39, type: 3}
@@ -310,11 +325,58 @@ PrefabInstance:
       propertyPath: _parryEffectPrefab
       value: 
       objectReference: {fileID: 2570490348969467664}
-    m_RemovedComponents: []
+    - target: {fileID: 7872210977826584017, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 17d2e42458fd116499b21f38f7448f0b, type: 2}
+    m_RemovedComponents:
+    - {fileID: 580150101673753349, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+    - {fileID: 6963529883617985485, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 185219601593208298, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7982857551982358669}
+    - targetCorrespondingSourceObject: {fileID: 185219601593208298, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5454083132617059552}
   m_SourcePrefab: {fileID: 100100000, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+--- !u!1 &2916437425804042039 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 185219601593208298, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}
+  m_PrefabInstance: {fileID: 3092649527288746717}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7982857551982358669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916437425804042039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35a7b8f14045f9148916be8b2db6ef60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &5454083132617059552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2916437425804042039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc200183eb5b42a42ae5391ce5e91010, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _firePoint: {fileID: 6478500318833342797}
+  _attackRange: 5
+  _enemyLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  _parryEffectPrefab: {fileID: 2570490348969467664}
 --- !u!4 &4268599694290976753 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1285303333172456748, guid: efd787a608a40b74a84c6a79f4daef33, type: 3}

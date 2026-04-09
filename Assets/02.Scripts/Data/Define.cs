@@ -16,6 +16,7 @@ public static class Data
     public const string Stage = "Stage";
     public const string Count = "Count";
     public const string CanMove = "CanMove";
+    public const string Exp = "Exp";
 }
 
 public static class ResourcesPath

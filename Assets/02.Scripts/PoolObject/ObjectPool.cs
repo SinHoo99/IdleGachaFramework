@@ -3,12 +3,11 @@ using UnityEngine;
 
 public class ObjectPool : Singleton<ObjectPool>
 {
-    private readonly Dictionary<string, List<PoolObject>> _poolDictionary = new();
-
-    public Dictionary<string, List<PoolObject>> PoolDictionary => _poolDictionary;
+    private readonly Dictionary<string, Queue<PoolObject>> _poolDictionary = new();
+    private readonly Dictionary<string, PoolObject> _prefabDictionary = new();
 
     /// <summary>
-    /// Creates a new object pool for a specific tag.
+    /// 특정 태그에 대한 새로운 오브젝트 풀을 생성합니다.
     /// </summary>
     public void AddObjectPool(string tag, PoolObject prefab, int size)
     {
@@ -16,23 +15,25 @@ public class ObjectPool : Singleton<ObjectPool>
 
         if (_poolDictionary.ContainsKey(tag))
         {
-            Debug.LogWarning($"[ObjectPool] Pool with tag '{tag}' already exists.");
+            Debug.LogWarning($"[ObjectPool] 태그 '{tag}'의 풀이 이미 존재합니다.");
             return;
         }
 
-        var objectPool = new List<PoolObject>();
+        _prefabDictionary[tag] = prefab;
+        var objectPool = new Queue<PoolObject>();
+
         for (int i = 0; i < size; i++)
         {
             PoolObject obj = CreateNewObject(prefab);
-            objectPool.Add(obj);
+            objectPool.Enqueue(obj);
         }
 
         _poolDictionary.Add(tag, objectPool);
     }
 
     /// <summary>
-    /// Spawns an object from the pool with specific position and rotation.
-    /// Returns the specified component type.
+    /// 풀에서 오브젝트를 꺼내 특정 위치와 회전값으로 배치합니다.
+    /// 지정된 컴포넌트 타입을 반환합니다.
     /// </summary>
     public T Spawn<T>(string tag, Vector3 position, Quaternion rotation) where T : Component
     {
@@ -49,31 +50,34 @@ public class ObjectPool : Singleton<ObjectPool>
     }
 
     /// <summary>
-    /// Spawns an object from the pool. Creates a new one if none are available.
+    /// 풀에서 오브젝트를 꺼냅니다. 사용할 수 있는 오브젝트가 없으면 새로 생성하여 풀을 확장합니다.
     /// </summary>
     public PoolObject SpawnFromPool(string tag)
     {
-        if (!_poolDictionary.TryGetValue(tag, out var list) || list.Count == 0)
+        if (!_poolDictionary.TryGetValue(tag, out var queue))
         {
-            Debug.LogWarning($"[ObjectPool] Pool for tag '{tag}' not found or empty.");
+            Debug.LogWarning($"[ObjectPool] 태그 '{tag}'에 해당하는 풀을 찾을 수 없습니다.");
             return null;
         }
 
-        PoolObject targetObj = null;
-        foreach (var obj in list)
-        {
-            if (obj != null && !obj.gameObject.activeInHierarchy)
-            {
-                targetObj = obj;
-                break;
-            }
-        }
+        PoolObject targetObj;
 
-        if (targetObj == null)
+        if (queue.Count > 0)
         {
-            // Expand pool if all are active
-            targetObj = CreateNewObject(list[0]);
-            list.Add(targetObj);
+            targetObj = queue.Dequeue();
+        }
+        else
+        {
+            // 풀이 비어있으면 확장
+            if (_prefabDictionary.TryGetValue(tag, out var prefab))
+            {
+                targetObj = CreateNewObject(prefab);
+            }
+            else
+            {
+                Debug.LogError($"[ObjectPool] 풀을 확장하기 위한 태그 '{tag}'의 프리팹을 찾을 수 없습니다.");
+                return null;
+            }
         }
 
         targetObj.gameObject.SetActive(true);
@@ -81,30 +85,14 @@ public class ObjectPool : Singleton<ObjectPool>
     }
 
     /// <summary>
-    /// Finds an active object by tag.
-    /// </summary>
-    public PoolObject FindActiveObject(string tag)
-    {
-        if (!_poolDictionary.TryGetValue(tag, out var list)) return null;
-
-        foreach (var obj in list)
-        {
-            if (obj != null && obj.gameObject.activeInHierarchy)
-            {
-                return obj;
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Deactivates and resets an object, returning it to the pool.
+    /// 오브젝트를 비활성화하고 리셋하여 풀로 반납합니다.
     /// </summary>
     public void ReturnObject(string tag, PoolObject obj)
     {
-        if (!_poolDictionary.ContainsKey(tag))
+        if (!_poolDictionary.TryGetValue(tag, out var queue))
         {
-            Debug.LogWarning($"[ObjectPool] No pool found for tag '{tag}'.");
+            Debug.LogWarning($"[ObjectPool] 태그 '{tag}'의 풀을 찾을 수 없습니다. 오브젝트를 파괴합니다.");
+            Destroy(obj.gameObject);
             return;
         }
 
@@ -113,30 +101,30 @@ public class ObjectPool : Singleton<ObjectPool>
             obj.OnReturnToPool();
             obj.gameObject.SetActive(false);
             
-            // Re-parent to the pool transform to keep hierarchy clean
+            // 계층 구조를 깔끔하게 유지하기 위해 풀 트랜스폼 하위로 이동
             obj.transform.SetParent(this.transform);
+            queue.Enqueue(obj);
         }
     }
 
     /// <summary>
-    /// Returns all objects in all pools.
+    /// 모든 풀의 모든 오브젝트를 반납 처리합니다.
     /// </summary>
     public void ReturnAllObjects()
     {
+        // 현재 활성화된 모든 PoolObject 자식들을 찾아 반납 처리
+        PoolObject[] activeObjects = GetComponentsInChildren<PoolObject>(false);
         int totalReturned = 0;
-        foreach (var list in _poolDictionary.Values)
+        
+        foreach (var obj in activeObjects)
         {
-            foreach (var obj in list)
+            if (obj.gameObject.activeInHierarchy)
             {
-                if (obj != null && obj.gameObject.activeInHierarchy)
-                {
-                    obj.OnReturnToPool();
-                    obj.gameObject.SetActive(false);
-                    totalReturned++;
-                }
+                obj.gameObject.SetActive(false);
+                totalReturned++;
             }
         }
-        Debug.Log($"[ObjectPool] All objects returned to pool. Total active objects found and deactivated: {totalReturned}");
+        Debug.Log($"[ObjectPool] 모든 오브젝트 비활성화 완료. 총합: {totalReturned}");
     }
 
     private PoolObject CreateNewObject(PoolObject prefab)
@@ -156,4 +144,21 @@ public class ObjectPool : Singleton<ObjectPool>
         obj.gameObject.SetActive(false);
         return obj;
     }
+
+    // PoolManager 초기화를 위한 헬퍼 메서드
+    public IEnumerable<PoolObject> GetPool(string tag)
+    {
+        if (_poolDictionary.TryGetValue(tag, out var queue))
+        {
+            return queue;
+        }
+        return null;
+    }
+
+    public bool HasPool(string tag) => _poolDictionary.ContainsKey(tag);
+
+    /// <summary>
+    /// 등록된 모든 풀 큐를 반환합니다.
+    /// </summary>
+    public IEnumerable<Queue<PoolObject>> GetAllPools() => _poolDictionary.Values;
 }

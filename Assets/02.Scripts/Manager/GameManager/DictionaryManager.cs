@@ -38,7 +38,7 @@ public class DictionaryManager : Singleton<DictionaryManager>
     }
 
     /// <summary>
-    /// Initializes the dictionary UI with fruit data.
+    /// 유닛 데이터로 도감 UI를 초기화합니다.
     /// </summary>
     public void InitializeDictionary(IReadOnlyDictionary<string, UnitData> UnitData)
     {
@@ -95,7 +95,7 @@ public class DictionaryManager : Singleton<DictionaryManager>
     }
 
     /// <summary>
-    /// Updates a specific fruit UI entry.
+    /// 특정 유닛 UI 항목을 업데이트합니다.
     /// </summary>
     public void UpdateDictionaryUI(string UnitID)
     {
@@ -107,7 +107,7 @@ public class DictionaryManager : Singleton<DictionaryManager>
     }
 
     /// <summary>
-    /// Updates all fruit UI entries in the dictionary.
+    /// 도감의 모든 유닛 UI 항목을 업데이트합니다.
     /// </summary>
     public void UpdateAllDictionaryUI()
     {

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// A simple shooting pattern that fires a bullet towards the player.
+/// 플레이어를 향해 총알을 발사하는 간단한 사격 패턴입니다.
 /// </summary>
 [CreateAssetMenu(fileName = "SimpleShootPattern", menuName = "Enemy/Patterns/SimpleShoot")]
 public class SimpleShootPattern : EnemyAttackPattern
@@ -14,14 +14,14 @@ public class SimpleShootPattern : EnemyAttackPattern
     {
         if (owner == null) return;
 
-        // In this game, player is usually to the left or at a fixed position
-        // We can target the Player singleton directly
+        // 이 게임에서 플레이어는 보통 왼쪽이나 고정된 위치에 있습니다.
+        // 플레이어 싱글톤을 직접 타겟팅할 수 있습니다.
         if (Player.Instance == null) return;
 
         Vector2 direction = (Player.Instance.transform.position - owner.transform.position).normalized;
         
-        // Use PoolManager to spawn a bullet
-        // Assuming there's a projectile or enemy bullet tag in Define.cs
+        // PoolManager를 사용하여 총알을 생성합니다.
+        // Define.cs에 발사체 또는 적 총알 태그가 있다고 가정합니다.
         var bullet = PoolManager.Instance.Spawn<Bullet>(Tag.Bullet, owner.transform.position, Quaternion.identity);
         if (bullet != null)
         {

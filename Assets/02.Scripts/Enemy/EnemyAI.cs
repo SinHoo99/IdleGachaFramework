@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A generic AI controller that executes a sequence of EnemyAttackPatterns.
-/// Attach this to Enemy prefabs that need complex behaviors (like bosses).
+/// 일련의 EnemyAttackPattern을 실행하는 범용 AI 컨트롤러입니다.
+/// 복잡한 행동이 필요한 적 프리팹(예: 보스)에 이 컴포넌트를 부착하십시오.
 /// </summary>
 public class EnemyAI : MonoBehaviour
 {
@@ -26,7 +26,7 @@ public class EnemyAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts the AI behavior loop.
+    /// AI 행동 루프를 시작합니다.
     /// </summary>
     public void StartAI()
     {
@@ -37,7 +37,7 @@ public class EnemyAI : MonoBehaviour
     }
 
     /// <summary>
-    /// Stops the AI behavior loop.
+    /// AI 행동 루프를 중지합니다.
     /// </summary>
     public void StopAI()
     {
@@ -50,30 +50,30 @@ public class EnemyAI : MonoBehaviour
 
     private IEnumerator AIRoutine()
     {
-        // Initial delay before starting first attack
+        // 첫 번째 공격을 시작하기 전의 초기 지연 시간
         yield return new WaitForSeconds(1f);
 
         while (true)
         {
             if (_patterns.Count == 0) yield break;
 
-            // 1. Select Pattern
+            // 1. 패턴 선택
             var pattern = _patterns[_currentPatternIndex];
 
-            // 2. Play Animation if defined
+            // 2. 애니메이션이 정의된 경우 애니메이션 재생
             if (_animator != null && !string.IsNullOrEmpty(pattern.AnimationTrigger))
             {
                 _animator.SetTrigger(pattern.AnimationTrigger);
             }
 
-            // 3. Execute Logic
+            // 3. 로직 실행
             Debug.Log($"[EnemyAI] Executing pattern: {pattern.name}");
             pattern.Execute(_owner);
 
-            // 4. Wait for Cooldown
+            // 4. 쿨다운 대기
             yield return new WaitForSeconds(pattern.Cooldown);
 
-            // 5. Progress to next pattern
+            // 5. 다음 패턴으로 진행
             if (_randomize)
             {
                 _currentPatternIndex = Random.Range(0, _patterns.Count);

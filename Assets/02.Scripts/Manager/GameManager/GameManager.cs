@@ -25,13 +25,13 @@ public class GameManager : Singleton<GameManager>
         InitializeGame();
     }
 
-    #region Initialization Logic
+    #region 초기화 로직
     private void InitializeComponents()
     {
-        // 1. DataManager (Loads CSVs)
+        // 1. DataManager (CSV 로드)
         if (DataManager.Instance != null) DataManager.Instance.Initialize();
         
-        // 2. SoundManager (Loads Settings & Applies Volumes)
+        // 2. SoundManager (설정 로드 및 볼륨 적용)
         if (SoundManager.Instance != null) 
         {
             SoundManager.Instance.Initialize();
@@ -41,39 +41,39 @@ public class GameManager : Singleton<GameManager>
         // 2.5 StageManager
         if (StageManager.Instance != null)
         {
-            // Initial state set by StageManager itself
+            // StageManager 자체에서 초기 상태 설정
         }
     }
 
     public void SetGameState(GameState newState)
     {
         _currentState = newState;
-        Debug.Log($"[GameManager] Game State changed to: {newState}");
+        Debug.Log($"[GameManager] 게임 상태 변경: {newState}");
     }
 
     private void InitializeGame()
     {
-        // 3. Object Pool (Uses DataManager's cached data)
+        // 3. 오브젝트 풀 (DataManager의 캐시된 데이터 사용)
         if (PoolManager.Instance != null) PoolManager.Instance.AddObjectPool();
         
-        // 4. Player Data (Loads Save Files)
+        // 4. 플레이어 데이터 (저장 파일 로드)
         if (PlayerDataManager.Instance != null) PlayerDataManager.Instance.Initialize();
         
-        // 5. Visual State (Spawns items based on Loaded Player Data)
+        // 5. 시각적 상태 (로드된 플레이어 데이터를 기반으로 아이템 생성)
         if (SpawnManager.Instance != null) SpawnManager.Instance.SpawnInitialUnits();
         
-        // 6. UI Synchronization
+        // 6. UI 동기화
         if (UIManager.Instance?.InventoryManager != null)
             UIManager.Instance.InventoryManager.TriggerInventoryUpdate();
             
         if (SoundManager.Instance?.SettingPopup != null)
             SoundManager.Instance.SettingPopup.Initializer();
             
-        Debug.Log("[GameManager] Full Initialization Complete in defined sequence.");
+        Debug.Log("[GameManager] 정의된 순서에 따라 전체 초기화 완료.");
     }
     #endregion
 
-    #region Application Events
+    #region 애플리케이션 이벤트
     protected override void OnApplicationQuit()
     {
         base.OnApplicationQuit();
@@ -83,14 +83,14 @@ public class GameManager : Singleton<GameManager>
             SoundManager.Instance.SettingPopup.gameObject.SetActive(false);
         }
 
-        SaveAllData();
+        // SaveAllData(); // 저장을 방지하려면 주석 처리
     }
 
     private void OnApplicationPause(bool pause)
     {
         if (pause)
         {
-            SaveAllData();
+            // SaveAllData(); // 저장을 방지하려면 주석 처리
         }
     }
 

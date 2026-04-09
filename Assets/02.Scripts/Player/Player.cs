@@ -13,7 +13,7 @@ public class Player : Singleton<Player>, IDamageable
     private HealthSystem _health;
 
     private float _idleCheckTimer = 0f;
-    private const float IDLE_CHECK_INTERVAL = 0.1f;
+    private const float IDLE_CHECK_INTERVAL = 0.1f; // 대기 상태 체크 간격
 
     protected override void Awake()
     {
@@ -83,7 +83,7 @@ public class Player : Singleton<Player>, IDamageable
                 break;
             case PlayerState.Die:
                 _combat.EndParry();
-                _health.TakeDamage(_health.CurHP); // Ensure health is 0
+                _health.TakeDamage(_health.CurHP); // 체력을 0으로 만듦
                 break;
         }
     }
@@ -134,7 +134,7 @@ public class Player : Singleton<Player>, IDamageable
     {
         if (_combat.IsParrying)
         {
-            Debug.Log("<color=green>[Player] PARRY SUCCESS!</color>");
+            Debug.Log("<color=green>[Player] 패링 성공!</color>");
             return;
         }
 

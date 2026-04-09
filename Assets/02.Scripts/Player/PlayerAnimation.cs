@@ -4,7 +4,7 @@ public class PlayerAnimation : MonoBehaviour
 {
     private Animator _animator;
     
-    // Cached animator hashes
+    // 캐시된 애니메이터 파라미터 해시값
     private readonly int _isIdleHash = Animator.StringToHash("isIdle");
     private readonly int _isAttackingHash = Animator.StringToHash("isAttacking");
     private readonly int _isHitHash = Animator.StringToHash("isHit");

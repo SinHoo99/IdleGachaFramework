@@ -5,6 +5,7 @@ public class UIManager : Singleton<UIManager>
 {
     [SerializeField] private InventoryManager _inventoryManager;
     [SerializeField] private DictionaryManager _dictionaryManager;
+    [SerializeField] private UI_CardSelectionPopup _cardSelectionPopup;
     
     public InventoryManager InventoryManager => _inventoryManager;
     public DictionaryManager DictionaryManager => _dictionaryManager;
@@ -16,10 +17,34 @@ public class UIManager : Singleton<UIManager>
     {
         if (_inventoryManager != null)
             _inventoryManager.TriggerInventoryUpdate();
+
+        // 레벨업 이벤트 구독
+        if (PlayerDataManager.Instance != null)
+        {
+            PlayerDataManager.Instance.OnLevelChanged += HandleLevelUp;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (PlayerDataManager.Instance != null)
+        {
+            PlayerDataManager.Instance.OnLevelChanged -= HandleLevelUp;
+        }
+    }
+
+    private void HandleLevelUp(int newLevel)
+    {
+        if (_cardSelectionPopup != null)
+        {
+            _cardSelectionPopup.Show(() => {
+                Debug.Log($"[UIManager] Level Up Selection Complete for Level {newLevel}");
+            });
+        }
     }
 
     /// <summary>
-    /// Animates a UI object into view or hides it if already visible.
+    /// UI 오브젝트가 보이는 상태면 숨기고, 숨겨진 상태면 애니메이션과 함께 표시합니다.
     /// </summary>
     public void OnDoTween(GameObject uiObject, Vector3 originalPos)
     {
@@ -34,7 +59,7 @@ public class UIManager : Singleton<UIManager>
                 HideUI(_currentActiveUI);
             }
 
-            // Set to front Z position
+            // 전면 Z 위치로 설정
             uiObject.transform.position = new Vector3(originalPos.x, originalPos.y, _frontZ);
 
             float targetPositionY = GetUIScreenCenterY(uiObject);
@@ -60,7 +85,7 @@ public class UIManager : Singleton<UIManager>
                 .OnComplete(() =>
                 {
                     uiObject.SetActive(false);
-                    // Reset Z position using OriginalPosition
+                    // OriginalPosition을 사용하여 Z 위치 재설정
                     uiObject.transform.position = uiScript.OriginalPosition;
                 });
         }

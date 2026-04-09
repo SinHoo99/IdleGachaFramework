@@ -8,6 +8,7 @@ public class Enemy : PoolObject, IDamageable
     private Rigidbody2D _rb;
     private EntityType _type = EntityType.Enemy;
     private string _enemyName;
+    private EnemyData _enemyData;
 
     [SerializeField] private float _moveSpeed = 2f;
 
@@ -31,16 +32,17 @@ public class Enemy : PoolObject, IDamageable
     {
         if (data == null) return;
 
+        _enemyData = data;
         _type = data.Type;
         _enemyName = data.Name;
 
-        // Initialize Health
+        // 체력 초기화
         if (_healthSystem != null)
         {
             _healthSystem.InitHP(data.MaxHealth, data.MaxHealth);
         }
 
-        // Handle Movement based on CanMove flag
+        // CanMove 플래그에 따른 이동 처리
         if (data.CanMove)
         {
             if (_rb != null) _rb.velocity = Vector2.left * _moveSpeed;
@@ -50,13 +52,13 @@ public class Enemy : PoolObject, IDamageable
             if (_rb != null) _rb.velocity = Vector2.zero;
         }
 
-        // AI Logic
+        // AI 로직
         if (TryGetComponent<EnemyAI>(out var ai))
         {
             ai.StartAI();
         }
 
-        // Boss-specific initialization (e.g., UI connection)
+        // 보스 전용 초기화 (예: UI 연결)
         if (_type == EntityType.Boss)
         {
             InitializeBossUI();
@@ -65,7 +67,7 @@ public class Enemy : PoolObject, IDamageable
 
     private void InitializeBossUI()
     {
-        // Search for a Boss Health Bar UI in the scene if this is a boss
+        // 보스인 경우 씬에서 보스 체력 바 UI를 찾습니다.
         var bossUI = FindObjectOfType<HealthStatusUI>();
         if (bossUI != null)
         {
@@ -85,7 +87,7 @@ public class Enemy : PoolObject, IDamageable
 
     public override void OnSpawn(Vector3 position, Quaternion rotation)
     {
-        // Force Z position to 0 to ensure collision in 2D
+        // 2D에서 충돌을 보장하기 위해 Z 위치를 0으로 고정
         Vector3 spawnPos = new Vector3(position.x, position.y, 0f);
         base.OnSpawn(spawnPos, rotation);
     }
@@ -102,13 +104,19 @@ public class Enemy : PoolObject, IDamageable
             StageManager.Instance.OnEnemyDefeated();
         }
 
+        // 경험치 획득
+        if (_enemyData != null && PlayerDataManager.Instance != null)
+        {
+            PlayerDataManager.Instance.GainExp(_enemyData.Exp);
+        }
+
         if (_type == EntityType.Boss)
         {
-            // Optional: Reward logic for bosses
+            // 선택 사항: 보스 보상 로직
             if (PlayerDataManager.Instance?.NowPlayerData != null)
-                PlayerDataManager.Instance.NowPlayerData.PlayerCoin += 100; // Example reward
+                PlayerDataManager.Instance.NowPlayerData.PlayerCoin += 100; // 보상 예시
 
-            // Hide Boss UI
+            // 보스 UI 숨기기
             var bossUI = FindObjectOfType<HealthStatusUI>();
             if (bossUI != null) bossUI.HideSlider();
         }
@@ -146,6 +154,6 @@ public class Enemy : PoolObject, IDamageable
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Add collision logic with player or units if needed
+        // 필요한 경우 플레이어 또는 유닛과의 충돌 로직 추가
     }
 }

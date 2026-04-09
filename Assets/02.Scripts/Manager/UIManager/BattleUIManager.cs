@@ -19,11 +19,11 @@ public class BattleUIManager : Singleton<BattleUIManager>
     {
         Debug.Log("[BattleUIManager] Start called.");
         
-        // 1. Subscribe to Events
+        // 1. 이벤트 구독
         EventBus.Subscribe(GameEventType.OnStageClear, OnStageClear);
         EventBus.Subscribe(GameEventType.OnStageFail, OnStageFail);
 
-        // 2. Show Start Panel initially
+        // 2. 처음에 시작 패널 표시
         ShowStartPanel();
     }
 
@@ -42,7 +42,7 @@ public class BattleUIManager : Singleton<BattleUIManager>
             return;
         }
 
-        // Ensure it's deactivated before Show() to prevent UIManager toggle-off logic
+        // UIManager의 토글 오프 로직을 방지하기 위해 Show() 전에 비활성화되어 있는지 확인
         _battlePanel.gameObject.SetActive(false);
 
         _battlePanel.Setup(
@@ -59,7 +59,7 @@ public class BattleUIManager : Singleton<BattleUIManager>
 
     private void OnStageClear()
     {
-        // If auto-playing, don't show the win panel
+        // 자동 플레이 중인 경우 승리 패널을 표시하지 않음
         if (StageManager.Instance != null && StageManager.Instance.IsAutoPlay) return;
         
         if (_battlePanel != null)

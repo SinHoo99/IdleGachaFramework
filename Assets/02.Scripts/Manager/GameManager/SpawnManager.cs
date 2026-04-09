@@ -5,7 +5,7 @@ using UnityEngine;
 public class SpawnManager : Singleton<SpawnManager>
 {
     [SerializeField] private float fixedY = -3.5f;
-    [SerializeField] private float _bossXOffset = -2f; // Offset to bring stationary bosses on-screen
+    [SerializeField] private float _bossXOffset = -2f; // 고정형 보스를 화면 안으로 가져오기 위한 오프셋
     [SerializeField] private Transform _enemySpawnPoint;
     [SerializeField] private Transform _bossSpawnPoint;
 
@@ -31,7 +31,7 @@ public class SpawnManager : Singleton<SpawnManager>
         ReturnAllUnitToPool();
         ReturnAllEnemiesToPool();
         
-        // Clear tracking collections
+        // 추적 컬렉션 초기화
         _activeUnits.Clear();
         _activeEnemies.Clear();
 
@@ -111,7 +111,7 @@ public class SpawnManager : Singleton<SpawnManager>
         Vector3 spawnPos;
         if (enemyData.Type == EntityType.Boss && _bossSpawnPoint != null)
         {
-            // Apply X offset for bosses to bring them on-screen
+            // 보스를 화면 안으로 가져오기 위해 X 오프셋 적용
             spawnPos = _bossSpawnPoint.position + new Vector3(_bossXOffset, 0f, 0f);
         }
         else
@@ -139,13 +139,13 @@ public class SpawnManager : Singleton<SpawnManager>
     {
         if (PoolManager.Instance == null) return;
 
-        // Use a temporary list to avoid modification during enumeration
+        // 열거 중 수정을 방지하기 위해 임시 리스트 사용
         var enemiesToReturn = new List<Enemy>(_activeEnemies);
         foreach (var enemy in enemiesToReturn)
         {
             if (enemy != null)
             {
-                // Internal Enemy.HandleDeath or ReturnToPool should handle unregistering
+                // 내부 Enemy.HandleDeath 또는 ReturnToPool에서 등록 해제를 처리해야 함
                 PoolManager.Instance.ReturnObject(enemy.gameObject.name.Replace("(Clone)", "").Trim(), enemy);
             }
         }
@@ -155,8 +155,8 @@ public class SpawnManager : Singleton<SpawnManager>
 
     #region Initial Spawning
     /// <summary>
-    /// Spawns all units from the saved inventory data.
-    /// Call this during game initialization.
+    /// 저장된 인벤토리 데이터로부터 모든 유닛을 생성합니다.
+    /// 게임 초기화 중에 이 메서드를 호출하십시오.
     /// </summary>
     public void SpawnInitialUnits()
     {
@@ -174,7 +174,7 @@ public class SpawnManager : Singleton<SpawnManager>
             {
                 SpawnUnitFromPool(item.ID);
                 totalTypes++;
-                yield return new WaitForSeconds(0.2f); // Spawn one by one with delay
+                yield return new WaitForSeconds(0.2f); // 지연 시간을 두고 하나씩 생성
             }
         }
         Debug.Log($"[SpawnManager] Initialized field with {totalTypes} unit types sequentially.");

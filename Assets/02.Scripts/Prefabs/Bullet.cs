@@ -20,13 +20,13 @@ public class Bullet : PoolObject
     {
         if (_isHit) return;
 
-        // Use GetComponentInParent to find IDamageable in case the collider is on a child object
+        // 콜라이더가 자식 오브젝트에 있는 경우를 대비해 GetComponentInParent를 사용하여 IDamageable을 찾습니다.
         var damageable = collision.GetComponentInParent<IDamageable>();
         
         if (damageable != null)
         {
-            _isHit = true; // Mark as hit immediately
-            Debug.Log($"[Bullet] Hit target: {collision.gameObject.name} at {transform.position}. Bullet Instance ID: {gameObject.GetInstanceID()}");
+            _isHit = true; // 즉시 피격된 것으로 표시
+            Debug.Log($"[Bullet] 대상 피격: {collision.gameObject.name} (위치: {transform.position}). 총알 인스턴스 ID: {gameObject.GetInstanceID()}");
             damageable.TakeDamage(_damage, transform.position);
             SpawnDamageText(_damage, transform.position);
             ReturnToPool();
@@ -45,7 +45,7 @@ public class Bullet : PoolObject
     }
 
     /// <summary>
-    /// Animation event receiver to return the bullet to the pool.
+    /// 총알을 풀로 반납하기 위한 애니메이션 이벤트 수신기입니다.
     /// </summary>
     public void BulletObjectreturn()
     {
@@ -53,7 +53,7 @@ public class Bullet : PoolObject
     }
 
     /// <summary>
-    /// Returns the bullet to the object pool.
+    /// 총알을 오브젝트 풀로 반납합니다.
     /// </summary>
     public void ReturnToPool()
     {
@@ -68,7 +68,7 @@ public class Bullet : PoolObject
     }
 
     /// <summary>
-    /// Initializes bullet properties when spawned from pool.
+    /// 풀에서 생성될 때 총알 속성을 초기화합니다.
     /// </summary>
     public void Setup(Vector2 direction, string ownerTag, float bulletDamage)
     {
@@ -86,8 +86,8 @@ public class Bullet : PoolObject
 
     public override void OnSpawn(Vector3 position, Quaternion rotation)
     {
-        _isHit = false; // Reset hit flag on spawn
-        // Force Z position to 0 to ensure collision in 2D
+        _isHit = false; // 생성 시 피격 플래그 리셋
+        // 2D에서 충돌을 보장하기 위해 Z 위치를 0으로 고정
         Vector3 spawnPos = new Vector3(position.x, position.y, 0f);
         base.OnSpawn(spawnPos, rotation);
     }

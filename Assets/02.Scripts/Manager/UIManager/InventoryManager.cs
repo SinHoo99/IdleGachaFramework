@@ -61,7 +61,7 @@ public class InventoryManager : Singleton<InventoryManager>
 
         var inventory = PlayerDataManager.Instance.NowPlayerData.Inventory;
         
-        // Ensure values are not null before ToDictionary
+        // ToDictionary를 수행하기 전에 값이 null이 아닌지 확인
         var filteredInventory = inventory
             .Where(kv => kv.Value != null)
             .ToDictionary(kv => kv.Key, kv => kv.Value.Amount);
