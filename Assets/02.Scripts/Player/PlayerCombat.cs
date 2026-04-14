@@ -1,15 +1,22 @@
-using System.Collections;
 using UnityEngine;
 
 public class PlayerCombat : MonoBehaviour
 {
     [SerializeField] private Transform _firePoint;
-    [SerializeField] private float _attackRange = 5f;
+    [SerializeField] private float _defaultDamage = 50f;
     [SerializeField] private LayerMask _enemyLayer;
     [SerializeField] private GameObject _parryEffectPrefab;
+    [SerializeField] private bool _showDebugRay = true;
 
     private bool _isParrying;
     public bool IsParrying => _isParrying;
+
+    private int _currentShotCount = 0;
+
+    public void ResetShotCount()
+    {
+        _currentShotCount = 0;
+    }
 
     public void StartParry()
     {
@@ -33,13 +40,17 @@ public class PlayerCombat : MonoBehaviour
     {
         if (_firePoint == null) return false;
         
-        float range = _attackRange;
-        if (PlayerDataManager.Instance?.NowPlayerData != null)
+        float range = 5f; 
+        if (PlayerDataManager.HasInstance && PlayerDataManager.Instance.NowPlayerData != null)
         {
             range = PlayerDataManager.Instance.NowPlayerData.AttackRange;
         }
 
-        // 레이캐스트를 이용해 전방에 적이 있는지 확인합니다.
+        if (_showDebugRay)
+        {
+            Debug.DrawRay(_firePoint.position, Vector2.right * range, Color.yellow);
+        }
+
         RaycastHit2D hit = Physics2D.Raycast(_firePoint.position, Vector2.right, range, _enemyLayer);
         return hit.collider != null;
     }
@@ -47,19 +58,24 @@ public class PlayerCombat : MonoBehaviour
     public void PerformShoot()
     {
         if (_firePoint == null) return;
-        
-        Vector2 direction = Vector2.right; // 2D 방치형 가로 방향
-        if (PoolManager.Instance != null)
+        if (PlayerDataManager.Instance == null || PlayerDataManager.Instance.NowPlayerData == null) return;
+
+        int maxShots = PlayerDataManager.Instance.NowPlayerData.MultiShotCount;
+
+        if (_currentShotCount < maxShots)
         {
-            var bullet = PoolManager.Instance.Spawn<Bullet>(Tag.Bullet, _firePoint.position, Quaternion.identity);
-            if (bullet != null)
+            Vector2 direction = Vector2.right;
+            if (PoolManager.Instance != null)
             {
-                float damage = 50f; // 기본값
-                if (PlayerDataManager.Instance?.NowPlayerData != null)
+                var bullet = PoolManager.Instance.Spawn<Bullet>(Tag.Bullet, _firePoint.position, Quaternion.identity);
+                if (bullet != null)
                 {
-                    damage = PlayerDataManager.Instance.NowPlayerData.Damage;
+                    float damage = PlayerDataManager.Instance.NowPlayerData.Damage;
+                    float range = PlayerDataManager.Instance.NowPlayerData.AttackRange;
+                    bullet.Setup(direction, gameObject.tag, damage, range);
+                    
+                    _currentShotCount++;
                 }
-                bullet.Setup(direction, gameObject.tag, damage);
             }
         }
     }
@@ -69,13 +85,12 @@ public class PlayerCombat : MonoBehaviour
         if (_firePoint == null) return;
         Gizmos.color = Color.red;
 
-        float range = _attackRange;
-        if (PlayerDataManager.Instance?.NowPlayerData != null)
+        float range = 5f;
+        if (PlayerDataManager.HasInstance && PlayerDataManager.Instance.NowPlayerData != null)
         {
             range = PlayerDataManager.Instance.NowPlayerData.AttackRange;
         }
 
-        // 사거리를 선으로 표시합니다.
         Gizmos.DrawLine(_firePoint.position, _firePoint.position + Vector3.right * range);
     }
 }

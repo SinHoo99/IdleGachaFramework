@@ -26,6 +26,37 @@ public class StageManager : Singleton<StageManager>
     private void Start()
     {
         _currentState = GameState.Ready;
+        
+        // 보상 이벤트 구독
+        EventBus<EnemyData>.Subscribe(GameEventType.OnRewardEarned, HandleEnemyReward);
+    }
+
+    private void OnDestroy()
+    {
+        EventBus<EnemyData>.Unsubscribe(GameEventType.OnRewardEarned, HandleEnemyReward);
+    }
+
+    private void HandleEnemyReward(EnemyData data)
+    {
+        if (data == null) return;
+
+        // 1. 경험치 지급
+        if (PlayerDataManager.Instance != null)
+        {
+            PlayerDataManager.Instance.GainExp(data.Exp);
+        }
+
+        // 2. 보스일 경우 추가 보상
+        if (data.Type == EntityType.Boss)
+        {
+            if (PlayerDataManager.Instance?.NowPlayerData != null)
+            {
+                PlayerDataManager.Instance.NowPlayerData.PlayerCoin += 100; // 보스 보상
+                PlayerDataManager.Instance.SavePlayerData();
+            }
+        }
+
+        Debug.Log($"[StageManager] Reward Earned from {data.Name}: {data.Exp} EXP");
     }
 
     public void StartStage()

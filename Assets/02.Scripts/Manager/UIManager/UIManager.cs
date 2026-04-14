@@ -6,6 +6,7 @@ public class UIManager : Singleton<UIManager>
     [SerializeField] private InventoryManager _inventoryManager;
     [SerializeField] private DictionaryManager _dictionaryManager;
     [SerializeField] private UI_CardSelectionPopup _cardSelectionPopup;
+    [SerializeField] private UI_StatPopup _statPopup;
     
     public InventoryManager InventoryManager => _inventoryManager;
     public DictionaryManager DictionaryManager => _dictionaryManager;
@@ -41,6 +42,16 @@ public class UIManager : Singleton<UIManager>
                 Debug.Log($"[UIManager] Level Up Selection Complete for Level {newLevel}");
             });
         }
+    }
+
+    public void ToggleStatPopup()
+    {
+        if (_statPopup == null) return;
+        
+        if (_statPopup.gameObject.activeSelf)
+            _statPopup.Close();
+        else
+            _statPopup.Open();
     }
 
     /// <summary>

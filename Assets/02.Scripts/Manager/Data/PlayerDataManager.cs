@@ -6,12 +6,25 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 {
     private PrefabDataManager _prefabDataManager => PrefabDataManager.Instance;
 
+    [Header("Initial Player Stats")]
+    [SerializeField] private float _initDamage = 50f;
+    [SerializeField] private float _initAttackRange = 7f; // 15에서 7로 하향 조정
+    [SerializeField] private float _initMaxHP = 100f;
+    [SerializeField] private float _initAttackSpeed = 1.0f;
+
     public PlayerData NowPlayerData { get; private set; }
 
     public void Initialize()
     {
         // LoadAllData(); // 로딩 주석 처리
         NowPlayerData = new PlayerData(); // 항상 새로운 데이터로 시작
+        
+        // 인스펙터 설정값 적용
+        NowPlayerData.Damage = _initDamage;
+        NowPlayerData.AttackRange = _initAttackRange;
+        NowPlayerData.MaxHP = _initMaxHP;
+        NowPlayerData.AttackSpeed = _initAttackSpeed;
+
         InitializeInventory();
     }
 
@@ -111,6 +124,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
 
     public event Action<float, float> OnExpChanged;
     public event Action<int> OnLevelChanged;
+    public event Action OnStatChanged; // 능력치 변경 이벤트 추가
 
     #region 경험치 및 레벨업 로직
     public void GainExp(float amount)
@@ -144,6 +158,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         Debug.Log($"<color=yellow>[PlayerDataManager] LEVEL UP! Level: {NowPlayerData.Level}</color>");
         
         OnLevelChanged?.Invoke(NowPlayerData.Level);
+        OnStatChanged?.Invoke(); // 능력치 변경 알림
         SavePlayerData();
     }
     #endregion
@@ -159,18 +174,21 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
                 break;
             case CardEffectType.MaxHP:
                 NowPlayerData.MaxHP += data.value;
-                // 현재 체력 회복도 같이 해주면 좋습니다 (옵션)
                 GetComponent<HealthSystem>()?.Heal(data.value); 
                 break;
             case CardEffectType.AttackRange:
                 NowPlayerData.AttackRange += data.value;
                 break;
             case CardEffectType.AttackSpeed:
-                // 향후 추가될 공격 속도 로직 반영
+                NowPlayerData.AttackSpeed += data.value; // 공격 속도 증가 (예: +0.1)
+                break;
+            case CardEffectType.MultiShot:
+                NowPlayerData.MultiShotCount += (int)data.value; // 이제 내부 프로퍼티가 알아서 1~3으로 제한함
                 break;
         }
 
         Debug.Log($"<color=cyan>[PlayerData] Applied Card: {data.cardName} (+{data.value})</color>");
+        OnStatChanged?.Invoke(); // 능력치 변경 알림
         SavePlayerData();
     }
 

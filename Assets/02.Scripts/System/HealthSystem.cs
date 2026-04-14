@@ -49,4 +49,17 @@ public class HealthSystem : MonoBehaviour
 
         OnChangeHP?.Invoke();
     }
+
+    /// <summary>
+    /// Restores current health and triggers events.
+    /// </summary>
+    public void Heal(float amount)
+    {
+        if (IsDead) return;
+
+        CurHP += amount;
+        if (CurHP > MaxHP) CurHP = MaxHP;
+
+        OnChangeHP?.Invoke();
+    }
 }

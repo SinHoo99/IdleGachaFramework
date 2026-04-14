@@ -22,7 +22,7 @@ public class DataManager : Singleton<DataManager>
     private void LoadCardData()
     {
         _allCardDatas.Clear();
-        var cards = Resources.LoadAll<CardData>("Cards");
+        var cards = Resources.LoadAll<CardData>(ResourcesPath.CardData);
         _allCardDatas.AddRange(cards);
         Debug.Log($"[DataManager] Loaded {_allCardDatas.Count} CardDatas.");
     }

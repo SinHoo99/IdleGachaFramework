@@ -192,6 +192,14 @@ public class PlayerData
     public float Damage = 50f;
     public float AttackRange = 5f;
     public float MaxHP = 100f;
+    public float AttackSpeed = 1.0f; // 기본 공격 속도 1.0
+
+    private int _multiShotCount = 1;
+    public int MultiShotCount 
+    {
+        get => _multiShotCount;
+        set => _multiShotCount = Mathf.Clamp(value, 1, 3);
+    }
 }
 
 [Serializable]

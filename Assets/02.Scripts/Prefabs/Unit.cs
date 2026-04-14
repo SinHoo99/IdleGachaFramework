@@ -27,38 +27,34 @@ public class Unit : PoolObject
     public void SetupUnit(string id)
     {
         UnitID = id;
-        //UpdateScale();
     }
 
     private void OnEnable()
     {
         UpdateTarget();
-      //  UpdateScale();
-
-        if (string.IsNullOrEmpty(UnitID))
-        {
-            // Initial warning, but setup can happen right after.
-            // If it stays empty, ShootCoroutine will fail safely.
-        }
 
         if (_shootCoroutine != null) StopCoroutine(_shootCoroutine);
-        //_shootCoroutine = StartCoroutine(ShootCoroutine());
+        _shootCoroutine = StartCoroutine(ShootCoroutine());
     }
 
     public void UpdateScale()
     {
         if (string.IsNullOrEmpty(UnitID)) return;
 
-        float currentLevel = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            currentLevel = collectedData.Amount;
-        }
-        
+        float currentLevel = GetCurrentUnitLevel();
         float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
         _targetScale = _baseScale * scaleMultiplier;
         transform.localScale = _targetScale;
+    }
+
+    private int GetCurrentUnitLevel()
+    {
+        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
+            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
+        {
+            return collectedData.Amount;
+        }
+        return 1;
     }
 
     private void OnDisable()
@@ -74,10 +70,8 @@ public class Unit : PoolObject
     {
         if (_targetEnemy != null && _targetEnemy.gameObject.activeInHierarchy) return;
 
-        // Use SpawnManager's active enemy list for much better performance
         if (SpawnManager.Instance != null && SpawnManager.Instance.ActiveEnemies.Count > 0)
         {
-            // Pick the first one for now, could be improved to find closest
             _targetEnemy = SpawnManager.Instance.ActiveEnemies[0];
         }
         else
@@ -87,20 +81,6 @@ public class Unit : PoolObject
     }
 
     #region Shooting Logic
-    public Bullet CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
-    {
-        if (PoolManager.Instance == null) return null;
-
-        var bullet = PoolManager.Instance.Spawn<Bullet>(tag, position, Quaternion.identity);
-        if (bullet != null)
-        {
-            float damage = GetBulletDamage();
-            bullet.Setup(direction, ownerTag, damage);
-            return bullet;
-        }
-        return null;
-    }
-
     private IEnumerator ShootCoroutine()
     {
         while (true)
@@ -113,21 +93,22 @@ public class Unit : PoolObject
         }
     }
 
-    private void ShootBullet()
+    public void ShootBullet() // public으로 변경하여 애니메이션 이벤트 대응 가능하게 함
     {
         UpdateTarget();
-        if (_targetEnemy == null) return;
-
-        // Check if enemy is active and visible
-        if (!_targetEnemy.gameObject.activeInHierarchy)
-        {
-            return;
-        }
+        if (_targetEnemy == null || !_targetEnemy.gameObject.activeInHierarchy) return;
 
         Vector2 direction = (_targetEnemy.transform.position - _firePoint.position).normalized;
-        CreateBullet(Tag.Bullet, _firePoint.position, direction, gameObject.tag);
         
-        //PlayShootEffects();
+        if (PoolManager.Instance != null)
+        {
+            var bullet = PoolManager.Instance.Spawn<Bullet>(Tag.Bullet, _firePoint.position, Quaternion.identity);
+            if (bullet != null)
+            {
+                bullet.Setup(direction, gameObject.tag, GetBulletDamage());
+            }
+        }
+        
         PlayLimitedSFX();
     }
 
@@ -136,37 +117,7 @@ public class Unit : PoolObject
         var data = DataManager.Instance.GetUnitData(UnitID);
         if (data == null) return 0f;
 
-        int amount = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            amount = collectedData.Amount;
-        }
-
-        return data.Damage * 0.1f * amount;
-    }
-
-    public void UpgradeEffect()
-    {
-        // Visual feedback
-        transform.DOKill();
-        
-        // Calculate permanent scale based on level (max 200% scale at Lv. 10+)
-        float currentLevel = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            currentLevel = collectedData.Amount;
-        }
-        
-        float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
-        _targetScale = _baseScale * scaleMultiplier;
-
-        // Pulse effect and then settle to new target scale
-        transform.DOScale(_targetScale * 1.2f, 0.1f)
-            .OnComplete(() => transform.DOScale(_targetScale, 0.1f));
-        
-        if (GM != null) GM.PlaySFX(SFX.Upgrade);
+        return data.Damage * 0.1f * GetCurrentUnitLevel();
     }
 
     private float GetAttackSpeed()
@@ -177,19 +128,18 @@ public class Unit : PoolObject
     #endregion
 
     #region Visual Effects
-    private void PlayShootEffects()
+    public void UpgradeEffect()
     {
-        // Player recoil effect
         transform.DOKill();
-        transform.DOScale(new Vector3(_targetScale.x * 0.95f, _targetScale.y * 1.05f, _targetScale.z), 0.05f)
-            .OnComplete(() => transform.DOScale(_targetScale, 0.05f));
+        
+        float currentLevel = GetCurrentUnitLevel();
+        float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
+        _targetScale = _baseScale * scaleMultiplier;
 
-        if (_firePoint != null)
-        {
-            _firePoint.DOKill();
-            _firePoint.DOShakePosition(0.2f, 0.1f);
-            _firePoint.DOScale(1.2f, 0.05f).OnComplete(() => _firePoint.DOScale(1f, 0.05f));
-        }
+        transform.DOScale(_targetScale * 1.2f, 0.1f)
+            .OnComplete(() => transform.DOScale(_targetScale, 0.1f));
+        
+        if (GM != null) GM.PlaySFX(SFX.Upgrade);
     }
 
     private void PlayLimitedSFX()

@@ -12,8 +12,12 @@ public class Player : Singleton<Player>, IDamageable
     private PlayerCombat _combat;
     private HealthSystem _health;
 
+    [Header("Settings")]
+    [SerializeField] private float _idleCheckInterval = 0.1f;
+    [SerializeField] private float _attackDuration = 0.5f;
+    [SerializeField] private float _hitDuration = 0.3f;
+
     private float _idleCheckTimer = 0f;
-    private const float IDLE_CHECK_INTERVAL = 0.1f; // 대기 상태 체크 간격
 
     protected override void Awake()
     {
@@ -47,7 +51,7 @@ public class Player : Singleton<Player>, IDamageable
         {
             case PlayerState.Idle:
                 _idleCheckTimer += Time.deltaTime;
-                if (_idleCheckTimer >= IDLE_CHECK_INTERVAL)
+                if (_idleCheckTimer >= _idleCheckInterval)
                 {
                     _idleCheckTimer = 0f;
                     if (_combat.DetectEnemy())
@@ -75,6 +79,7 @@ public class Player : Singleton<Player>, IDamageable
         switch (state)
         {
             case PlayerState.Attack:
+                _combat.ResetShotCount(); // 전투 컴포넌트의 카운트 초기화
                 StartCoroutine(AttackRoutine());
                 break;
             case PlayerState.Hit:
@@ -83,7 +88,7 @@ public class Player : Singleton<Player>, IDamageable
                 break;
             case PlayerState.Die:
                 _combat.EndParry();
-                _health.TakeDamage(_health.CurHP); // 체력을 0으로 만듦
+                _health.TakeDamage(_health.CurHP);
                 break;
         }
     }
@@ -92,19 +97,22 @@ public class Player : Singleton<Player>, IDamageable
 
     private IEnumerator AttackRoutine()
     {
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(_attackDuration);
         ChangeState(PlayerState.Idle);
     }
 
-    // 애니메이션 이벤트 수신용 메서드 (단 한 번만 실행됨)
+    // 애니메이션 이벤트 수신용 메서드
     public void ShootBullet()
     {
-        if (_combat != null) _combat.PerformShoot();
+        if (_combat != null) 
+        {
+            _combat.PerformShoot(); // 실제 발사 및 카운트 체크는 Combat에서 처리
+        }
     }
 
     private IEnumerator HitRoutine()
     {
-        yield return new WaitForSeconds(0.3f);
+        yield return new WaitForSeconds(_hitDuration);
         ChangeState(PlayerState.Idle);
     }
 

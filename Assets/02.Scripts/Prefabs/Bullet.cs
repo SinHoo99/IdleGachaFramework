@@ -7,6 +7,11 @@ public class Bullet : PoolObject
 
     private string _ownerTag;
     private float _damage;
+    
+    // 사거리 제한을 위한 변수들
+    private Vector2 _startPosition;
+    private float _maxRange;
+    private bool _hasRangeLimit;
 
     private void Awake()
     {
@@ -15,6 +20,19 @@ public class Bullet : PoolObject
     }
 
     private bool _isHit = false;
+
+    private void Update()
+    {
+        // 사거리 제한이 있는 경우 이동 거리 체크
+        if (_hasRangeLimit)
+        {
+            float distanceTraveled = Vector2.Distance(_startPosition, transform.position);
+            if (distanceTraveled >= _maxRange)
+            {
+                ReturnToPool();
+            }
+        }
+    }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -29,8 +47,16 @@ public class Bullet : PoolObject
             Debug.Log($"[Bullet] 대상 피격: {collision.gameObject.name} (위치: {transform.position}). 총알 인스턴스 ID: {gameObject.GetInstanceID()}");
             damageable.TakeDamage(_damage, transform.position);
             SpawnDamageText(_damage, transform.position);
+            SpawnHitEffect(transform.position);
             ReturnToPool();
         }
+    }
+
+    private void SpawnHitEffect(Vector3 hitPosition)
+    {
+        if (PoolManager.Instance == null) return;
+
+        PoolManager.Instance.Spawn<PoolObject>(Tag.HitEffect, hitPosition, Quaternion.identity);
     }
 
     private void SpawnDamageText(float damage, Vector3 hitPosition)
@@ -70,10 +96,22 @@ public class Bullet : PoolObject
     /// <summary>
     /// 풀에서 생성될 때 총알 속성을 초기화합니다.
     /// </summary>
-    public void Setup(Vector2 direction, string ownerTag, float bulletDamage)
+    public void Setup(Vector2 direction, string ownerTag, float bulletDamage, float maxRange = -1f)
     {
         _ownerTag = ownerTag;
         _damage = bulletDamage;
+        _startPosition = transform.position;
+        
+        // 사거리 제한 설정 (maxRange가 0보다 클 때만 활성화)
+        if (maxRange > 0)
+        {
+            _maxRange = maxRange;
+            _hasRangeLimit = true;
+        }
+        else
+        {
+            _hasRangeLimit = false;
+        }
         
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         transform.rotation = Quaternion.Euler(0, 0, angle);
@@ -96,6 +134,6 @@ public class Bullet : PoolObject
     {
         base.OnReturnToPool();
         if (_rb != null) _rb.velocity = Vector2.zero;
+        _hasRangeLimit = false; // 플래그 초기화
     }
-
 }

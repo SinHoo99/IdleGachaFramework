@@ -29,7 +29,6 @@ public class PlayerStatusUI : MonoBehaviour
 
     private void OnDestroy()
     {
-        // 앱 종료 중이 아닐 때만 이벤트 해제 시도
         if (PlayerDataManager.Instance != null)
         {
             PlayerDataManager.Instance.OnExpChanged -= UpdateExpUI;

@@ -104,18 +104,14 @@ public class Enemy : PoolObject, IDamageable
             StageManager.Instance.OnEnemyDefeated();
         }
 
-        // 경험치 획득
-        if (_enemyData != null && PlayerDataManager.Instance != null)
+        // 직접 경험치를 주지 않고 이벤트를 발행 (StageManager나 별도 매니저에서 처리)
+        if (_enemyData != null)
         {
-            PlayerDataManager.Instance.GainExp(_enemyData.Exp);
+            EventBus<EnemyData>.Publish(GameEventType.OnRewardEarned, _enemyData);
         }
 
         if (_type == EntityType.Boss)
         {
-            // 선택 사항: 보스 보상 로직
-            if (PlayerDataManager.Instance?.NowPlayerData != null)
-                PlayerDataManager.Instance.NowPlayerData.PlayerCoin += 100; // 보상 예시
-
             // 보스 UI 숨기기
             var bossUI = FindObjectOfType<HealthStatusUI>();
             if (bossUI != null) bossUI.HideSlider();

@@ -31,7 +31,8 @@ public enum GameEventType
     OnStageStart,
     OnStageClear,
     OnStageFail,
-    OnEnemyDefeated
+    OnEnemyDefeated,
+    OnRewardEarned // 추가
 }
 
 public enum PlayerState
@@ -57,5 +58,6 @@ public enum CardEffectType
     Damage,
     MaxHP,
     AttackRange,
-    AttackSpeed
+    AttackSpeed,
+    MultiShot
 }
