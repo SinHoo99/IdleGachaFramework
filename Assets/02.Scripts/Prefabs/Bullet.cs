@@ -56,14 +56,18 @@ public class Bullet : PoolObject
     {
         if (PoolManager.Instance == null) return;
 
-        PoolManager.Instance.Spawn<PoolObject>(Tag.HitEffect, hitPosition, Quaternion.identity);
+        // 피격 이펙트가 몬스터 뒤에 가려지지 않도록 Z축 오프셋 적용
+        Vector3 effectPos = new Vector3(hitPosition.x, hitPosition.y, hitPosition.z - 0.3f);
+        PoolManager.Instance.Spawn<PoolObject>(Tag.HitEffect, effectPos, Quaternion.identity);
     }
 
     private void SpawnDamageText(float damage, Vector3 hitPosition)
     {
         if (PoolManager.Instance == null) return;
 
-        var damageText = PoolManager.Instance.Spawn<DamageText>(Tag.DamageText, hitPosition, Quaternion.identity);
+        // 데미지 텍스트가 다른 오브젝트보다 앞에 보이도록 Z축 오프셋 적용
+        Vector3 textPos = new Vector3(hitPosition.x, hitPosition.y, hitPosition.z - 0.5f);
+        var damageText = PoolManager.Instance.Spawn<DamageText>(Tag.DamageText, textPos, Quaternion.identity);
         if (damageText != null)
         {
             damageText.Setup(damage);
