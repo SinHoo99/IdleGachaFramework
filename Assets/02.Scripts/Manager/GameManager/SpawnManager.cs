@@ -4,15 +4,15 @@ using UnityEngine;
 
 public class SpawnManager : Singleton<SpawnManager>
 {
-    [SerializeField] private GameObject boss;
-    public GameObject Boss => boss;
-
-    [SerializeField] private float minSpawnDistance = -2f;
-    [SerializeField] private float maxSpawnDistance = 0f;
-
-    private Boss _currentBoss;
+    [SerializeField] private float fixedY = -3.5f;
+    [SerializeField] private float _bossXOffset = -2f; // 고정형 보스를 화면 안으로 가져오기 위한 오프셋
+    [SerializeField] private Transform _enemySpawnPoint;
+    [SerializeField] private Transform _bossSpawnPoint;
 
     private Dictionary<string, Unit> _activeUnits = new();
+    private List<Enemy> _activeEnemies = new();
+
+    public IReadOnlyList<Enemy> ActiveEnemies => _activeEnemies;
 
     private void OnEnable()
     {
@@ -29,38 +29,25 @@ public class SpawnManager : Singleton<SpawnManager>
         Debug.Log("[SpawnManager] Received OnDataReset event. Clearing all visuals...");
         StopAllCoroutines();
         ReturnAllUnitToPool();
+        ReturnAllEnemiesToPool();
         
-        // Clear active units tracking
+        // 추적 컬렉션 초기화
         _activeUnits.Clear();
+        _activeEnemies.Clear();
 
-        // Immediately update prefab data to reflect that there are no active units on field
-        // This prevents old, out-of-range positions from being loaded later.
         if (PrefabDataManager.Instance != null)
         {
             PrefabDataManager.Instance.SavePrefabData();
         }
 
-        // Force cleanup any remaining active objects just in case
-        Unit[] lingeringUnits = FindObjectsByType<Unit>(FindObjectsSortMode.None);
-        foreach (var unit in lingeringUnits)
-        {
-            unit.gameObject.SetActive(false);
-            unit.OnReturnToPool();
-        }
-
-        GetCurrentBoss()?.ResetBossData();
         Debug.Log("[SpawnManager] Visual reset complete and saved.");
     }
 
-    /// <summary>
-    /// Spawns a fruit from the object pool near the boss.
-    /// If it already exists, calls UpgradeEffect on the existing unit.
-    /// </summary>
+    #region Unit Management
     public void SpawnUnitFromPool(string UnitID)
     {
         if (PoolManager.Instance == null) return;
 
-        // If unit already exists on field, don't spawn a new one, just upgrade it
         if (_activeUnits.TryGetValue(UnitID, out var existingUnit) && existingUnit.gameObject.activeInHierarchy)
         {
             existingUnit.UpgradeEffect();
@@ -70,18 +57,11 @@ public class SpawnManager : Singleton<SpawnManager>
         PoolObject fruit = PoolManager.Instance.CreateUnitPrefabs(UnitID);
         if (fruit != null)
         {
-            // Y is fixed at -3.5 as requested
-            float fixedY = -3.5f;
-            
-            // X is limited to -2 to 0 as requested
             float randomX = Random.Range(-2f, 0f);
             Vector3 spawnPosition = new Vector3(randomX, fixedY, 0);
 
             fruit.transform.position = spawnPosition;
             fruit.transform.rotation = Quaternion.identity;
-            
-            // Removed forcing localScale to Vector3.one to preserve prefab scale
-
             fruit.gameObject.SetActive(true);
 
             if (fruit.TryGetComponent<Unit>(out var unit))
@@ -90,19 +70,15 @@ public class SpawnManager : Singleton<SpawnManager>
                 _activeUnits[UnitID] = unit;
             }
         }
-        else
-        {
-            Debug.LogWarning($"[SpawnManager] Failed to spawn {UnitID} from pool.");
-        }
     }
 
     public void RemoveUnitFromField(string UnitID)
     {
         if (_activeUnits.TryGetValue(UnitID, out var unit))
         {
-            if (ObjectPool.Instance != null)
+            if (PoolManager.Instance != null)
             {
-                ObjectPool.Instance.ReturnObject(UnitID, unit);
+                PoolManager.Instance.ReturnObject(UnitID, unit);
             }
             else
             {
@@ -114,33 +90,73 @@ public class SpawnManager : Singleton<SpawnManager>
 
     public void ReturnAllUnitToPool()
     {
-        // Try standard pool return first
-        if (ObjectPool.Instance != null)
-        {
-            ObjectPool.Instance.ReturnAllObjects();
-        }
+        if (PoolManager.Instance == null) return;
 
+        foreach (var unit in _activeUnits.Values)
+        {
+            if (unit != null) PoolManager.Instance.ReturnObject(unit.UnitID, unit);
+        }
         _activeUnits.Clear();
+    }
+    #endregion
 
-        // Backup cleanup: Find all active Unit objects in the scene and return them to pool
-        Unit[] activeUnits = FindObjectsByType<Unit>(FindObjectsSortMode.None);
-        int forceReturned = 0;
-        foreach (var unit in activeUnits)
+    #region Enemy Management
+    public void SpawnEnemy(int stage)
+    {
+        if (PoolManager.Instance == null) return;
+
+        var enemyData = DataManager.Instance.GetEnemyData(stage);
+        if (enemyData == null) return;
+
+        Vector3 spawnPos;
+        if (enemyData.Type == EntityType.Boss && _bossSpawnPoint != null)
         {
-            if (unit.gameObject.activeInHierarchy)
-            {
-                unit.gameObject.SetActive(false);
-                unit.OnReturnToPool();
-                forceReturned++;
-            }
+            // 보스를 화면 안으로 가져오기 위해 X 오프셋 적용
+            spawnPos = _bossSpawnPoint.position + new Vector3(_bossXOffset, 0f, 0f);
         }
-
-        Debug.Log($"[SpawnManager] Cleaned all fruits. Pool return + {forceReturned} units force deactivated.");
+        else
+        {
+            spawnPos = (_enemySpawnPoint != null ? _enemySpawnPoint.position : new Vector3(10f, fixedY, 0f));
+        }
+        
+        var enemy = PoolManager.Instance.Spawn<Enemy>(enemyData.Name, spawnPos, Quaternion.identity);
+        if (enemy != null)
+        {
+            enemy.Setup(enemyData);
+            _activeEnemies.Add(enemy);
+        }
     }
 
+    public void UnregisterEnemy(Enemy enemy)
+    {
+        if (_activeEnemies.Contains(enemy))
+        {
+            _activeEnemies.Remove(enemy);
+        }
+    }
+
+    public void ReturnAllEnemiesToPool()
+    {
+        if (PoolManager.Instance == null) return;
+
+        // 열거 중 수정을 방지하기 위해 임시 리스트 사용
+        var enemiesToReturn = new List<Enemy>(_activeEnemies);
+        foreach (var enemy in enemiesToReturn)
+        {
+            if (enemy != null)
+            {
+                // 내부 Enemy.HandleDeath 또는 ReturnToPool에서 등록 해제를 처리해야 함
+                PoolManager.Instance.ReturnObject(enemy.gameObject.name.Replace("(Clone)", "").Trim(), enemy);
+            }
+        }
+        _activeEnemies.Clear();
+    }
+    #endregion
+
+    #region Initial Spawning
     /// <summary>
-    /// Spawns all fruits from the saved inventory data.
-    /// Call this during game initialization.
+    /// 저장된 인벤토리 데이터로부터 모든 유닛을 생성합니다.
+    /// 게임 초기화 중에 이 메서드를 호출하십시오.
     /// </summary>
     public void SpawnInitialUnits()
     {
@@ -158,18 +174,10 @@ public class SpawnManager : Singleton<SpawnManager>
             {
                 SpawnUnitFromPool(item.ID);
                 totalTypes++;
-                yield return new WaitForSeconds(0.2f); // Spawn one by one with delay
+                yield return new WaitForSeconds(0.2f); // 지연 시간을 두고 하나씩 생성
             }
         }
         Debug.Log($"[SpawnManager] Initialized field with {totalTypes} unit types sequentially.");
     }
-
-    public Boss GetCurrentBoss()
-    {
-        if (_currentBoss == null)
-        {
-            _currentBoss = FindAnyObjectByType<Boss>();
-        }
-        return _currentBoss;
-    }
+    #endregion
 }

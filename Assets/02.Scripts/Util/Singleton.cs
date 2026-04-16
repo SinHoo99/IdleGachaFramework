@@ -15,7 +15,9 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
         {
             if (_isQuitting)
             {
-                Debug.LogWarning($"[Singleton] Instance '{typeof(T)}' already destroyed on application quit. Won't create again - returning null.");
+                // 에디터 모드가 아닐 때만 경고 출력 (선택 사항)
+                if (Application.isPlaying)
+                    Debug.LogWarning($"[Singleton] Instance '{typeof(T)}' already destroyed on application quit. Won't create again - returning null.");
                 return null;
             }
 
@@ -23,9 +25,9 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             {
                 if (_instance == null)
                 {
-                    _instance = (T)FindAnyObjectByType(typeof(T));
+                    _instance = (T)FindObjectOfType(typeof(T));
 
-                    if (_instance == null)
+                    if (_instance == null && Application.isPlaying) // 게임 실행 중일 때만 새로 생성
                     {
                         GameObject gameObject = new GameObject(typeof(T).Name);
                         _instance = gameObject.AddComponent<T>();
@@ -36,6 +38,11 @@ public abstract class Singleton<T> : MonoBehaviour where T : MonoBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// 인스턴스가 존재하는지 확인합니다. 경고를 발생시키지 않습니다.
+    /// </summary>
+    public static bool HasInstance => _instance != null;
 
     [SerializeField] protected bool isDontDestroy = false;
 

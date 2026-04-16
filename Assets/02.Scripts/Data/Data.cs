@@ -1,21 +1,98 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.U2D;
 
 #region Unit Data
 [Serializable]
 public class UnitData
 {
-    public string ID;               // Unit ID (string-based)
-    public string Name;               // Unit Name
-    public UnitIType Type;           // Unit Type
-    public Sprite Image;              // Unit Sprite
-    public string Description;        // Unit Description
-    public int Price;                 // Selling Price
-    public float Probability;         // Spawning Probability
-    public float Damage;              // Damage value
-    public PoolObject Prefab;         // Prefab reference
-    public float AttackSpeed;         // Attack speed value
+    public string ID;               // 유닛 ID (문자열 기반)
+    public string Name;               // 유닛 이름
+    public UnitIType Type;           // 유닛 타입
+    public Sprite Image;              // 유닛 스프라이트
+    public string Description;        // 유닛 설명
+    public int Price;                 // 판매 가격
+    public float Probability;         // 생성 확률
+    public float Damage;              // 데미지 값
+    public PoolObject Prefab;         // 프리팹 참조
+    public float AttackSpeed;         // 공격 속도 값
+
+    public static UnitData CreateFromCSV(Dictionary<string, string> row, SpriteAtlas atlas)
+    {
+        var data = new UnitData
+        {
+            ID = row[Data.ID],
+            Name = row[Data.Name],
+            Price = ParseInt(row[Data.Price]),
+            Type = (UnitIType)ParseInt(row[Data.Type]),
+            Description = row[Data.Description],
+            Probability = ParseFloat(row[Data.Probability]),
+            Damage = ParseFloat(row[Data.Damage]),
+            AttackSpeed = ParseFloat(row[Data.AttackSpeed])
+        };
+
+        if (atlas != null) data.Image = atlas.GetSprite(row[Data.Image]);
+        data.Prefab = Resources.Load<PoolObject>(row[Data.Prefab]);
+
+        return data;
+    }
+
+    private static int ParseInt(string value) => int.TryParse(value, out int result) ? result : 0;
+    private static float ParseFloat(string value) => float.TryParse(value, out float result) ? result : 0f;
+}
+#endregion
+
+#region Enemy Data
+[Serializable]
+public class EnemyData
+{
+    public int Stage;
+    public EntityType Type;
+    public string Name;
+    public int MaxHealth;
+    public int Count;
+    public bool CanMove;
+    public int Exp;
+    public PoolObject Prefab; 
+
+    public EnemyData(int stage, EntityType type, string name, int maxHealth, int count, bool canMove, int exp = 10)
+    {
+        Stage = stage;
+        Type = type;
+        Name = name;
+        MaxHealth = maxHealth;
+        Count = count;
+        CanMove = canMove;
+        Exp = exp;
+    }
+
+    public static EnemyData CreateFromCSV(Dictionary<string, string> row)
+    {
+        int stage = ParseInt(row[Data.Stage]);
+        string typeStr = row[Data.Type];
+        EntityType type = (typeStr == "Boss") ? EntityType.Boss : EntityType.Enemy;
+        string name = row[Data.Name];
+        int maxHealth = ParseInt(row[Data.MaxHealth]);
+        int count = ParseInt(row[Data.Count]);
+        bool canMove = ParseBool(row[Data.CanMove]);
+        
+        int exp = 10;
+        if (row.TryGetValue(Data.Exp, out string expStr)) exp = ParseInt(expStr);
+
+        var data = new EnemyData(stage, type, name, maxHealth, count, canMove, exp);
+        data.Prefab = Resources.Load<PoolObject>($"Prefabs/Enemy/{name}");
+
+        return data;
+    }
+
+    private static int ParseInt(string value) => int.TryParse(value, out int result) ? result : 0;
+    private static bool ParseBool(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return false;
+        string lower = value.ToLower();
+        return lower == "true" || lower == "1" || lower == "yes";
+    }
 }
 #endregion
 
@@ -23,14 +100,14 @@ public class UnitData
 [Serializable]
 public class BossData
 {
-    public BossID ID;
+    public string Name;
     public int MaxHealth;
     public string AnimationState;
     public int Reward;
 
-    public BossData(BossID id, int maxHealth, string animationState, int reward)
+    public BossData(string name, int maxHealth, string animationState, int reward)
     {
-        ID = id;
+        Name = name;
         MaxHealth = maxHealth;
         AnimationState = animationState;
         Reward = reward;
@@ -40,12 +117,12 @@ public class BossData
 [Serializable]
 public class BossRuntimeData
 {
-    public BossID CurrentBossID;
+    public string CurrentBossName;
     public float CurrentHealth;
 
-    public BossRuntimeData(BossID id, float currentHealth)
+    public BossRuntimeData(string name, float currentHealth)
     {
-        CurrentBossID = id;
+        CurrentBossName = name;
         CurrentHealth = currentHealth;
     }
 }
@@ -107,13 +184,29 @@ public class PlayerData
     public Dictionary<string, bool> DictionaryCollection = new();
     public DateTime LastCollectedTime;
     public int PlayerCoin = 1000;
+
+    public int Level = 1;
+    public float CurrentExp = 0;
+    public float MaxExp = 100;
+
+    public float Damage = 50f;
+    public float AttackRange = 5f;
+    public float MaxHP = 100f;
+    public float AttackSpeed = 1.0f; // 기본 공격 속도 1.0
+
+    private int _multiShotCount = 1;
+    public int MultiShotCount 
+    {
+        get => _multiShotCount;
+        set => _multiShotCount = Mathf.Clamp(value, 1, 3);
+    }
 }
 
 [Serializable]
 public class CollectedUnitData
 {
-    public string ID;     // Unit ID (string-based)
-    public int Amount;      // Collected quantity
+    public string ID;     // 유닛 ID (문자열 기반)
+    public int Amount;      // 수집된 수량
 }
 #endregion
 

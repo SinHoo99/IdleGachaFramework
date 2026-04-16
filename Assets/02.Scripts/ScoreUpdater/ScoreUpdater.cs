@@ -4,11 +4,9 @@ using UnityEngine;
 
 public class ScoreUpdater : Singleton<ScoreUpdater>
 {
-    public event Action<string> OnUnitCollected;
-
-    #region Unit Logic
+    #region 유닛 로직
     /// <summary>
-    /// Adds a fruit to the player's collection.
+    /// 플레이어의 소지 목록에 유닛을 추가합니다.
     /// </summary>
     public void AddUnit(string UnitID)
     {
@@ -18,38 +16,32 @@ public class ScoreUpdater : Singleton<ScoreUpdater>
 
         if (!inventory.ContainsKey(UnitID))
         {
-            Debug.LogWarning($"{UnitID} not found in Inventory.");
+            Debug.LogWarning($"인벤토리에서 {UnitID}를 찾을 수 없습니다.");
             return;
         }
 
-        // Mark as collected in dictionary
+        // 도감에 수집된 것으로 표시
         PlayerDataManager.Instance.CollectUnit(UnitID);
 
-        // Increase level (stored as Amount)
+        // 레벨 증가 (Amount로 저장됨)
         inventory[UnitID].Amount++;
 
-        // Save progress
+        // 진행 상황 저장
         PlayerDataManager.Instance.SavePlayerData();
 
-        // Update physical unit or play upgrade effect
+        // 물리적 유닛 업데이트 (SpawnManager가 생성 또는 업그레이드 여부를 처리)
         if (SpawnManager.Instance != null)
             SpawnManager.Instance.SpawnUnitFromPool(UnitID);
 
-        // Update UI with new Level
-        if (UnitUIManager.Instance != null)
-            UnitUIManager.Instance.UpdateOrCreateUnitUI(UnitID, inventory[UnitID].Amount);
-
-        // Notify systems
+        // 시스템 알림 - UI 컴포넌트들이 이 이벤트들을 구독해야 함
         EventBus.Publish(GameEventType.OnInventoryUpdate);
         EventBus.Publish(GameEventType.OnDictionaryUpdate);
 
-        OnUnitCollected?.Invoke(UnitID);
-
-        Debug.Log($"[ScoreUpdater] {UnitID} Leveled up. Current Level: {inventory[UnitID].Amount}");
+        Debug.Log($"[ScoreUpdater] {UnitID} 레벨업. 현재 레벨: {inventory[UnitID].Amount}");
     }
 
     /// <summary>
-    /// Attempts to summon a unit. If already owned, it levels up.
+    /// 유닛 소환을 시도합니다. 이미 보유 중인 경우 레벨이 올라갑니다.
     /// </summary>
     public void AddRandomUnit()
     {
@@ -77,18 +69,18 @@ public class ScoreUpdater : Singleton<ScoreUpdater>
             if (randomValue <= cumulativeProbability)
             {
                 if (AlertManager.Instance != null)
-                    AlertManager.Instance.ShowAlert($"{Unit.Name} LEVEL UP!");
+                    AlertManager.Instance.ShowAlert($"{Unit.Name} 레벨 업!");
                 return Unit.ID; 
             }
         }
 
         if (AlertManager.Instance != null)
-            AlertManager.Instance.ShowAlert("Failed to summon unit.");
+            AlertManager.Instance.ShowAlert("유닛 소환에 실패했습니다.");
         return string.Empty; 
     }
     #endregion
 
-    #region Input Handling
+    #region 입력 처리
     private float _lastInputTime = 0f;
     private float _inputCooldown = 0.5f;
 
@@ -102,18 +94,18 @@ public class ScoreUpdater : Singleton<ScoreUpdater>
 
         if (PlayerDataManager.Instance != null && PlayerDataManager.Instance.TrySpendCoin(100))
         {
-            if (PlayerStatusUI.Instance != null)
-                PlayerStatusUI.Instance.UpdateCoinUI();
+            // if (PlayerStatusUI.Instance != null)
+            //     PlayerStatusUI.Instance.UpdateCoinUI();
                 
             AddRandomUnit(); 
             
-            // Notify inventory update through EventBus
+            // EventBus를 통해 인벤토리 업데이트 알림
             EventBus.Publish(GameEventType.OnInventoryUpdate);
         }
         else
         {
             if (AlertManager.Instance != null)
-                AlertManager.Instance.ShowAlert("Not enough coins.");
+                AlertManager.Instance.ShowAlert("코인이 부족합니다.");
         }
     }
     #endregion

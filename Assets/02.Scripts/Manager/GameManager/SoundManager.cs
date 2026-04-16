@@ -32,12 +32,12 @@ public class SoundManager : Singleton<SoundManager>
 
     protected override void Awake()
     {
-        // Check for duplicates and ensure the one with inspector data stays
+        // 중복 체크를 수행하고 인스펙터 데이터가 있는 인스턴스를 유지합니다.
         if (IsDuplicates()) return;
         
         base.Awake();
 
-        // Auto-assign sources if missing
+        // 소스가 없는 경우 자동으로 할당합니다.
         if (bgmSource == null) bgmSource = GetComponent<AudioSource>();
         if (sfxSource == null) sfxSource = gameObject.AddComponent<AudioSource>();
 
@@ -57,7 +57,7 @@ public class SoundManager : Singleton<SoundManager>
     {
         if (audioMixer == null || NowOptionData == null) return;
         
-        // Convert normalized 0-1 volume to decibels (-80 to 20)
+        // 0-1 사이의 정규화된 볼륨을 데시벨(-80 ~ 20)로 변환합니다.
         float bgmDB = NowOptionData.BGMVolume <= 0.001f ? -80f : Mathf.Log10(NowOptionData.BGMVolume) * 20f;
         float sfxDB = NowOptionData.SFXVolume <= 0.001f ? -80f : Mathf.Log10(NowOptionData.SFXVolume) * 20f;
 
@@ -149,7 +149,7 @@ public class SoundManager : Singleton<SoundManager>
             return true;
         }
         
-        // Default values: 0.75f (approx -2.5dB) is a good starting point
+        // 기본값: 0.75f(약 -2.5dB)는 적절한 시작 지점입니다.
         NowOptionData = new OptionData { BGMVolume = 0.75f, SFXVolume = 0.75f };
         return false;
     }

@@ -1,0 +1,6 @@
+Stage,Type,Name,MaxHealth,Count,CanMove
+1,Enemy,Enemy,100,20,TRUE
+2,Enemy,DualBlader,200,20,TRUE
+3,Enemy,GiantBlade,300,20,TRUE
+4,Enemy,OldSamurai,400,20,TRUE
+5,Boss,DemonSamurai,500,1,FALSE

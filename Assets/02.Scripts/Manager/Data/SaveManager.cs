@@ -12,7 +12,7 @@ public class SaveManager : Singleton<SaveManager>
     };
 
     /// <summary>
-    /// Saves data to a JSON file named after the type T.
+    /// 데이터를 형식 T의 이름을 딴 JSON 파일로 저장합니다.
     /// </summary>
     public void SaveData<T>(T data)
     {
@@ -32,7 +32,7 @@ public class SaveManager : Singleton<SaveManager>
     }
 
     /// <summary>
-    /// Tries to load data from a JSON file.
+    /// JSON 파일에서 데이터를 로드하려고 시도합니다.
     /// </summary>
     public bool TryLoadData<T>(out T data)
     {

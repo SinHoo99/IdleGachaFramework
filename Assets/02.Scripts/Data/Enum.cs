@@ -1,12 +1,8 @@
-public enum BossID
+public enum EntityType
 {
-    A = 1,
-    B,
-    C,
-    D,
-    E
+    Enemy,
+    Boss
 }
-
 
 public enum UnitIType
 {
@@ -31,5 +27,37 @@ public enum GameEventType
     OnInventoryUpdate,
     OnDictionaryUpdate,
     OnBossDefeated,
-    OnGameStart
+    OnGameStart,
+    OnStageStart,
+    OnStageClear,
+    OnStageFail,
+    OnEnemyDefeated,
+    OnRewardEarned // 추가
+}
+
+public enum PlayerState
+{
+    Idle,
+    Attack,
+    Parrying,
+    Hit,
+    Die
+}
+
+public enum GameState
+{
+    Ready,
+    Playing,
+    Win,
+    Lose,
+    Paused
+}
+
+public enum CardEffectType
+{
+    Damage,
+    MaxHP,
+    AttackRange,
+    AttackSpeed,
+    MultiShot
 }

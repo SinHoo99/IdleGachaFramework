@@ -10,7 +10,7 @@ public class Unit : PoolObject
 
     [SerializeField] private Transform _firePoint;
 
-    private Boss _boss;
+    private Enemy _targetEnemy;
     private Coroutine _shootCoroutine;
     private Vector3 _baseScale;
     private Vector3 _targetScale;
@@ -27,38 +27,34 @@ public class Unit : PoolObject
     public void SetupUnit(string id)
     {
         UnitID = id;
-        UpdateScale();
     }
 
     private void OnEnable()
     {
-        InitializeBossReference();
-      //  UpdateScale();
-
-        if (string.IsNullOrEmpty(UnitID))
-        {
-            // Initial warning, but setup can happen right after.
-            // If it stays empty, ShootCoroutine will fail safely.
-        }
+        UpdateTarget();
 
         if (_shootCoroutine != null) StopCoroutine(_shootCoroutine);
-        //_shootCoroutine = StartCoroutine(ShootCoroutine());
+        _shootCoroutine = StartCoroutine(ShootCoroutine());
     }
 
     public void UpdateScale()
     {
         if (string.IsNullOrEmpty(UnitID)) return;
 
-        float currentLevel = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            currentLevel = collectedData.Amount;
-        }
-        
+        float currentLevel = GetCurrentUnitLevel();
         float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
         _targetScale = _baseScale * scaleMultiplier;
         transform.localScale = _targetScale;
+    }
+
+    private int GetCurrentUnitLevel()
+    {
+        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
+            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
+        {
+            return collectedData.Amount;
+        }
+        return 1;
     }
 
     private void OnDisable()
@@ -70,38 +66,26 @@ public class Unit : PoolObject
         }
     }
 
-    private void InitializeBossReference()
+    private void UpdateTarget()
     {
-        if (_boss == null && SpawnManager.Instance != null)
-        {
-            _boss = SpawnManager.Instance.GetCurrentBoss();
-        }
+        if (_targetEnemy != null && _targetEnemy.gameObject.activeInHierarchy) return;
 
-        if (_boss == null)
+        if (SpawnManager.Instance != null && SpawnManager.Instance.ActiveEnemies.Count > 0)
         {
-            _boss = FindFirstObjectByType<Boss>();
+            _targetEnemy = SpawnManager.Instance.ActiveEnemies[0];
+        }
+        else
+        {
+            _targetEnemy = null;
         }
     }
 
     #region Shooting Logic
-    public PoolObject CreateBullet(string tag, Vector2 position, Vector2 direction, string ownerTag)
-    {
-        if (ObjectPool.Instance == null) return null;
-
-        PoolObject bulletObj = ObjectPool.Instance.SpawnFromPool(tag);
-        if (bulletObj != null && bulletObj.TryGetComponent<Bullet>(out var bullet))
-        {
-            float damage = GetBulletDamage();
-            bullet.Initialize(position, direction, ownerTag, damage);
-            return bulletObj;
-        }
-        return null;
-    }
-
     private IEnumerator ShootCoroutine()
     {
         while (true)
         {
+            UpdateTarget();
             float attackSpeed = GetAttackSpeed();
             float randomVariance = Random.Range(-0.3f, 0.3f);
             yield return new WaitForSeconds(Mathf.Max(0.1f, attackSpeed + randomVariance));
@@ -109,20 +93,22 @@ public class Unit : PoolObject
         }
     }
 
-    private void ShootBullet()
+    public void ShootBullet() // public으로 변경하여 애니메이션 이벤트 대응 가능하게 함
     {
-        if (_boss == null) return;
+        UpdateTarget();
+        if (_targetEnemy == null || !_targetEnemy.gameObject.activeInHierarchy) return;
 
-        // Check if boss is active and visible
-        if (_boss.TryGetComponent<SpriteRenderer>(out var bossSprite) && (!bossSprite.enabled || !bossSprite.gameObject.activeInHierarchy))
-        {
-            return;
-        }
-
-        Vector2 direction = (_boss.transform.position - _firePoint.position).normalized;
-        CreateBullet(Tag.Bullet, _firePoint.position, direction, gameObject.tag);
+        Vector2 direction = (_targetEnemy.transform.position - _firePoint.position).normalized;
         
-        //PlayShootEffects();
+        if (PoolManager.Instance != null)
+        {
+            var bullet = PoolManager.Instance.Spawn<Bullet>(Tag.Bullet, _firePoint.position, Quaternion.identity);
+            if (bullet != null)
+            {
+                bullet.Setup(direction, gameObject.tag, GetBulletDamage());
+            }
+        }
+        
         PlayLimitedSFX();
     }
 
@@ -131,37 +117,7 @@ public class Unit : PoolObject
         var data = DataManager.Instance.GetUnitData(UnitID);
         if (data == null) return 0f;
 
-        int amount = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            amount = collectedData.Amount;
-        }
-
-        return data.Damage * 0.1f * amount;
-    }
-
-    public void UpgradeEffect()
-    {
-        // Visual feedback
-        transform.DOKill();
-        
-        // Calculate permanent scale based on level (max 200% scale at Lv. 10+)
-        float currentLevel = 1;
-        if (PlayerDataManager.Instance?.NowPlayerData?.Inventory != null && 
-            PlayerDataManager.Instance.NowPlayerData.Inventory.TryGetValue(UnitID, out var collectedData))
-        {
-            currentLevel = collectedData.Amount;
-        }
-        
-        float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
-        _targetScale = _baseScale * scaleMultiplier;
-
-        // Pulse effect and then settle to new target scale
-        transform.DOScale(_targetScale * 1.2f, 0.1f)
-            .OnComplete(() => transform.DOScale(_targetScale, 0.1f));
-        
-        if (GM != null) GM.PlaySFX(SFX.Upgrade);
+        return data.Damage * 0.1f * GetCurrentUnitLevel();
     }
 
     private float GetAttackSpeed()
@@ -172,19 +128,18 @@ public class Unit : PoolObject
     #endregion
 
     #region Visual Effects
-    private void PlayShootEffects()
+    public void UpgradeEffect()
     {
-        // Player recoil effect
         transform.DOKill();
-        transform.DOScale(new Vector3(_targetScale.x * 0.95f, _targetScale.y * 1.05f, _targetScale.z), 0.05f)
-            .OnComplete(() => transform.DOScale(_targetScale, 0.05f));
+        
+        float currentLevel = GetCurrentUnitLevel();
+        float scaleMultiplier = Mathf.Min(2.0f, 1.0f + (currentLevel - 1) * 0.1f);
+        _targetScale = _baseScale * scaleMultiplier;
 
-        if (_firePoint != null)
-        {
-            _firePoint.DOKill();
-            _firePoint.DOShakePosition(0.2f, 0.1f);
-            _firePoint.DOScale(1.2f, 0.05f).OnComplete(() => _firePoint.DOScale(1f, 0.05f));
-        }
+        transform.DOScale(_targetScale * 1.2f, 0.1f)
+            .OnComplete(() => transform.DOScale(_targetScale, 0.1f));
+        
+        if (GM != null) GM.PlaySFX(SFX.Upgrade);
     }
 
     private void PlayLimitedSFX()

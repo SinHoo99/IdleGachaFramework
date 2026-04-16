@@ -5,120 +5,58 @@ using UnityEngine.U2D;
 public class DataManager : Singleton<DataManager>
 {
     private readonly Dictionary<string, UnitData> _unitDatas = new();
-    private readonly Dictionary<BossID, BossData> _bossDatas = new();
+    private readonly Dictionary<int, EnemyData> _enemyDatas = new();
+    private readonly List<CardData> _allCardDatas = new();
 
     public IReadOnlyDictionary<string, UnitData> UnitDatas => _unitDatas;
-    public IReadOnlyDictionary<BossID, BossData> BossDatas => _bossDatas;
+    public IReadOnlyDictionary<int, EnemyData> EnemyDatas => _enemyDatas;
+    public IReadOnlyList<CardData> AllCardDatas => _allCardDatas;
 
     public void Initialize()
     {
         LoadUnitData();
-        LoadBossData();
+        LoadEnemyData();
+        LoadCardData(); // 추가
     }
 
-    public UnitData GetUnitData(string id)
+    private void LoadCardData()
     {
-        return _unitDatas.TryGetValue(id, out var data) ? data : null;
+        _allCardDatas.Clear();
+        var cards = Resources.LoadAll<CardData>(ResourcesPath.CardData);
+        _allCardDatas.AddRange(cards);
+        Debug.Log($"[DataManager] Loaded {_allCardDatas.Count} CardDatas.");
     }
 
-    public BossData GetBossData(BossID id)
-    {
-        return _bossDatas.TryGetValue(id, out var data) ? data : null;
-    }
+    public UnitData GetUnitData(string id) => _unitDatas.TryGetValue(id, out var data) ? data : null;
+    public EnemyData GetEnemyData(int stage) => _enemyDatas.TryGetValue(stage, out var data) ? data : null;
 
-    #region Unit Data Loading
     private void LoadUnitData()
     {
         _unitDatas.Clear();
-        var fruitsCSV = CSVReader.Read(ResourcesPath.UnitCSV);
-        if (fruitsCSV == null || fruitsCSV.Count == 0)
-        {
-            Debug.LogError($"[DataManager] Failed to load UnitData CSV from {ResourcesPath.UnitCSV} or it is empty.");
-            return;
-        }
+        var csv = CSVReader.Read(ResourcesPath.UnitCSV);
+        if (csv == null) return;
 
-        // Load SpriteAtlas once to improve performance
         var atlas = Resources.Load<SpriteAtlas>(ResourcesPath.CSVSprites);
-        if (atlas == null)
+
+        foreach (var row in csv)
         {
-            Debug.LogWarning($"[DataManager] SpriteAtlas not found at: {ResourcesPath.CSVSprites}");
+            var data = UnitData.CreateFromCSV(row, atlas);
+            if (!_unitDatas.ContainsKey(data.ID)) _unitDatas.Add(data.ID, data);
         }
-
-        foreach (var row in fruitsCSV)
-        {
-            var fruitsData = new UnitData
-            {
-                ID = row[Data.ID], // Directly use string ID from CSV
-                Name = row[Data.Name],
-                Price = ParseInt(row[Data.Price]),
-                Type = (UnitIType)ParseInt(row[Data.Type]),
-                Description = row[Data.Description],
-                Probability = ParseFloat(row[Data.Probability]),
-                Damage = ParseFloat(row[Data.Damage]),
-                AttackSpeed = ParseFloat(row[Data.AttackSpeed])
-            };
-
-            // Load Sprite from Atlas
-            if (atlas != null)
-            {
-                fruitsData.Image = atlas.GetSprite(row[Data.Image]);
-            }
-
-            // Load Prefab
-            fruitsData.Prefab = Resources.Load<PoolObject>(row[Data.Prefab]);
-
-            if (fruitsData.Prefab == null)
-            {
-                Debug.LogWarning($"[DataManager] Prefab not found for Unit {fruitsData.ID} at path: {row[Data.Prefab]}");
-            }
-
-            if (!_unitDatas.ContainsKey(fruitsData.ID))
-            {
-                _unitDatas.Add(fruitsData.ID, fruitsData);
-            }
-        }
-        Debug.Log($"[DataManager] Successfully loaded {_unitDatas.Count} UnitDatas.");
+        Debug.Log($"[DataManager] Loaded {_unitDatas.Count} UnitDatas.");
     }
-    #endregion
 
-    #region Boss Data Loading
-    private void LoadBossData()
+    private void LoadEnemyData()
     {
-        _bossDatas.Clear();
-        var bossCSV = CSVReader.Read(ResourcesPath.BossCSV);
-        if (bossCSV == null || bossCSV.Count == 0)
+        _enemyDatas.Clear();
+        var csv = CSVReader.Read(ResourcesPath.EnemyCSV);
+        if (csv == null) return;
+
+        foreach (var row in csv)
         {
-            Debug.LogError($"[DataManager] Failed to load BossData CSV from {ResourcesPath.BossCSV} or it is empty.");
-            return;
+            var data = EnemyData.CreateFromCSV(row);
+            if (!_enemyDatas.ContainsKey(data.Stage)) _enemyDatas.Add(data.Stage, data);
         }
-
-        foreach (var row in bossCSV)
-        {
-            var bossID = (BossID)ParseInt(row[Data.ID]);
-            var maxHealth = ParseInt(row[Data.MaxHealth]);
-            var animationState = row[Data.AnimationState];
-            var reward = ParseInt(row[Data.Reward]);
-
-            var bossData = new BossData(bossID, maxHealth, animationState, reward);
-
-            if (!_bossDatas.ContainsKey(bossData.ID))
-            {
-                _bossDatas.Add(bossData.ID, bossData);
-            }
-        }
-        Debug.Log($"[DataManager] Successfully loaded {_bossDatas.Count} BossDatas.");
+        Debug.Log($"[DataManager] Loaded {_enemyDatas.Count} EnemyDatas.");
     }
-    #endregion
-
-    #region Helper Methods
-    private int ParseInt(string value)
-    {
-        return int.TryParse(value, out int result) ? result : 0;
-    }
-
-    private float ParseFloat(string value)
-    {
-        return float.TryParse(value, out float result) ? result : 0f;
-    }
-    #endregion
 }

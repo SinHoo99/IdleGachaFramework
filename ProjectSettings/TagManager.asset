@@ -4,13 +4,10 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - Fruits
-  - Apple
-  - Banana
-  - Carrot
-  - Melon
   - Boss
   - Particle
+  - Enemy
+  - Bullet
   layers:
   - Default
   - TransparentFX
@@ -21,8 +18,8 @@ TagManager:
   - Fence
   - Unit
   - Boss
-  - 
-  - 
+  - Bullet
+  - Enemy
   - 
   - 
   - 

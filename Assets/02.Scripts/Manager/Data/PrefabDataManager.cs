@@ -4,7 +4,7 @@ using UnityEngine;
 public class PrefabDataManager : Singleton<PrefabDataManager>
 {
     /// <summary>
-    /// Saves the current state of active pooled objects to a JSON file.
+    /// 현재 활성화된 풀링된 오브젝트의 상태를 JSON 파일로 저장합니다.
     /// </summary>
     public void SavePrefabData()
     {
@@ -13,13 +13,13 @@ public class PrefabDataManager : Singleton<PrefabDataManager>
         var prefabDataList = new List<PrefabData>();
         int unitLayer = LayerMask.NameToLayer(Layer.Unit);
 
-        foreach (var pool in ObjectPool.Instance.PoolDictionary.Values)
+        foreach (var pool in ObjectPool.Instance.GetAllPools())
         {
             foreach (var obj in pool)
             {
                 if (obj != null && obj.gameObject.activeInHierarchy && obj.gameObject.layer == unitLayer)
                 {
-                    // Remove "(Clone)" suffix from name for consistency
+                    // 일관성을 위해 이름에서 "(Clone)" 접미사 제거
                     string cleanName = obj.name.Replace("(Clone)", "").Trim();
                     
                     prefabDataList.Add(new PrefabData(
@@ -35,7 +35,7 @@ public class PrefabDataManager : Singleton<PrefabDataManager>
     }
 
     /// <summary>
-    /// Loads saved prefab state and spawns objects from the pool.
+    /// 저장된 프리팹 상태를 로드하고 풀에서 오브젝트를 생성합니다.
     /// </summary>
     public void LoadPrefabData()
     {

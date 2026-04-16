@@ -13,13 +13,19 @@ public static class Data
     public const string AnimationState = "AnimationState";
     public const string AttackSpeed = "AttackSpeed";
     public const string Reward = "Reward";
+    public const string Stage = "Stage";
+    public const string Count = "Count";
+    public const string CanMove = "CanMove";
+    public const string Exp = "Exp";
 }
 
 public static class ResourcesPath
 {
     public const string UnitCSV = "CSV/UnitCSV";
-    public const string BossCSV = "CSV/BossCSV";
+    public const string EnemyCSV = "CSV/EnemyCSV";
     public const string CSVSprites = "SpriteAtlas/Units";
+    public const string CardData = "Cards";
+    public const string UIPrefabs = "Prefabs/UI/";
 }
 
 public static class Parameters 
@@ -27,15 +33,17 @@ public static class Parameters
     public const string IsWalk = "IsWalk";
 }
 
-public static class Tag 
+public static class Tag
 {
     public const string Apple = "Apple";
     public const string Banana = "Banana";
     public const string Carrot = "Carrot";
     public const string Melon = "Melon";
     public const string Bullet = "Bullet";
+    public const string DamageText = "DamageText";
+    public const string HitEffect = "HitEffect";
+    public const string Enemy = "Enemy";
 }
-
 public static class Layer
 {
     public const string Boss = "Boss";

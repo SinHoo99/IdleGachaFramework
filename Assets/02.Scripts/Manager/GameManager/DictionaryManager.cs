@@ -12,16 +12,13 @@ public class DictionaryManager : Singleton<DictionaryManager>
 
     private void Start()
     {
-        if (DataManager.Instance == null || ScoreUpdater.Instance == null)
+        if (DataManager.Instance == null)
         {
-            Debug.LogError("[DictionaryManager] DataManager or ScoreUpdater is missing.");
+            Debug.LogError("[DictionaryManager] DataManager is missing.");
             return;
         }
 
         InitializeDictionary(DataManager.Instance.UnitDatas);
-
-        // Subscribe to fruit collection events
-        ScoreUpdater.Instance.OnUnitCollected += UpdateDictionaryUI;
     }
 
     private void OnEnable()
@@ -38,14 +35,10 @@ public class DictionaryManager : Singleton<DictionaryManager>
 
     private void OnDestroy()
     {
-        if (ScoreUpdater.Instance != null)
-        {
-            ScoreUpdater.Instance.OnUnitCollected -= UpdateDictionaryUI;
-        }
     }
 
     /// <summary>
-    /// Initializes the dictionary UI with fruit data.
+    /// 유닛 데이터로 도감 UI를 초기화합니다.
     /// </summary>
     public void InitializeDictionary(IReadOnlyDictionary<string, UnitData> UnitData)
     {
@@ -102,7 +95,7 @@ public class DictionaryManager : Singleton<DictionaryManager>
     }
 
     /// <summary>
-    /// Updates a specific fruit UI entry.
+    /// 특정 유닛 UI 항목을 업데이트합니다.
     /// </summary>
     public void UpdateDictionaryUI(string UnitID)
     {
@@ -114,7 +107,7 @@ public class DictionaryManager : Singleton<DictionaryManager>
     }
 
     /// <summary>
-    /// Updates all fruit UI entries in the dictionary.
+    /// 도감의 모든 유닛 UI 항목을 업데이트합니다.
     /// </summary>
     public void UpdateAllDictionaryUI()
     {
