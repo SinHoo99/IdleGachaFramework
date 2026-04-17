@@ -43,6 +43,7 @@ public static class Tag
     public const string DamageText = "DamageText";
     public const string HitEffect = "HitEffect";
     public const string Enemy = "Enemy";
+    public const string Coin = "Coin";
 }
 public static class Layer
 {

@@ -19,13 +19,63 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
         // LoadAllData(); // 로딩 주석 처리
         NowPlayerData = new PlayerData(); // 항상 새로운 데이터로 시작
         
-        // 인스펙터 설정값 적용
+        // 인스펙터 설정값 적용 (기본 스탯)
         NowPlayerData.Damage = _initDamage;
         NowPlayerData.AttackRange = _initAttackRange;
         NowPlayerData.MaxHP = _initMaxHP;
         NowPlayerData.AttackSpeed = _initAttackSpeed;
 
         InitializeInventory();
+        InitializeInitialEquipment(); // 초기 장비 지급 추가
+        RefreshPlayerStats(); // 최종 스탯 계산
+    }
+
+    private void InitializeInitialEquipment()
+    {
+        if (NowPlayerData.EquippedItems == null || NowPlayerData.EquippedItems.Count == 0)
+        {
+            NowPlayerData.EquippedItems = new Dictionary<EquipmentType, EquipmentInstance>();
+            foreach (EquipmentType type in Enum.GetValues(typeof(EquipmentType)))
+            {
+                NowPlayerData.EquippedItems.Add(type, new EquipmentInstance(type));
+            }
+            Debug.Log("[PlayerDataManager] 초기 장비 4종이 지급되었습니다.");
+        }
+    }
+
+    public void RefreshPlayerStats()
+    {
+        if (NowPlayerData == null) return;
+
+        // 1. 기본 스탯 리셋 (초기 인스펙터 설정값 + 레벨업 보너스)
+        float baseDmg = _initDamage + (NowPlayerData.Level - 1) * 5f;
+        float baseMaxHP = _initMaxHP + (NowPlayerData.Level - 1) * 10f;
+        float baseRange = _initAttackRange + (NowPlayerData.Level - 1) * 0.05f;
+        float baseAS = _initAttackSpeed;
+
+        // 2. 장비 스탯 합산
+        if (EquipmentDataManager.Instance != null && NowPlayerData.EquippedItems != null)
+        {
+            foreach (var item in NowPlayerData.EquippedItems.Values)
+            {
+                float stat = EquipmentDataManager.Instance.GetStat(item);
+                switch (item.Type)
+                {
+                    case EquipmentType.Weapon: baseDmg += stat; break;
+                    case EquipmentType.Armor: baseMaxHP += stat; break;
+                    case EquipmentType.Glove: baseAS += (stat * 0.001f); break; // 공격 속도는 보정치 적용
+                    case EquipmentType.Ring: baseRange += (stat * 0.01f); break; // 사거리 보정
+                }
+            }
+        }
+
+        // 3. 최종 스탯 적용
+        NowPlayerData.Damage = baseDmg;
+        NowPlayerData.MaxHP = baseMaxHP;
+        NowPlayerData.AttackRange = baseRange;
+        NowPlayerData.AttackSpeed = baseAS;
+
+        OnStatChanged?.Invoke();
     }
 
     #region 인벤토리 초기화
@@ -271,6 +321,21 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
     }
 
     /// <summary>
+    /// 플레이어에게 코인을 지급합니다.
+    /// </summary>
+    public void GainCoin(int amount)
+    {
+        if (NowPlayerData == null) return;
+
+        NowPlayerData.PlayerCoin += amount;
+        
+        // 코인이 변경되었음을 시스템에 알림
+        EventBus.Publish(GameEventType.OnInventoryUpdate);
+        
+        Debug.Log($"[PlayerDataManager] {amount} 코인 획득. 현재 코인: {NowPlayerData.PlayerCoin}");
+    }
+
+    /// <summary>
     /// 특정 금액의 코인 소모를 시도합니다.
     /// 성공하면 true를 반환합니다.
     /// </summary>
@@ -284,7 +349,7 @@ public class PlayerDataManager : Singleton<PlayerDataManager>
             return false;
         }
 
-       // NowPlayerData.PlayerCoin -= amount;
+        NowPlayerData.PlayerCoin -= amount;
         
         // 코인이 변경되었음을 시스템에 알림
         EventBus.Publish(GameEventType.OnInventoryUpdate);

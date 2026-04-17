@@ -10,6 +10,9 @@ public class PlayerStatusUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _expText;
     [SerializeField] private TextMeshProUGUI _levelText;
 
+    [Header("Currency UI")]
+    [SerializeField] private TextMeshProUGUI _coinText;
+
     private float _lastMaxExp = -1;
     private float _lastCurrentExp = -1;
     private Sequence _expSequence;
@@ -22,6 +25,9 @@ public class PlayerStatusUI : MonoBehaviour
             PlayerDataManager.Instance.OnExpChanged += UpdateExpUI;
             PlayerDataManager.Instance.OnLevelChanged += UpdateLevelUI;
 
+            // 코인 변경 이벤트 구독 (EventBus 사용)
+            EventBus.Subscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
+
             // 초기 데이터 설정
             var data = PlayerDataManager.Instance.NowPlayerData;
             if (data != null)
@@ -29,7 +35,7 @@ public class PlayerStatusUI : MonoBehaviour
                 // 초기 설정은 애니메이션 없이 즉시 반영
                 _lastMaxExp = data.MaxExp;
                 _lastCurrentExp = data.CurrentExp;
-                
+
                 if (_expSlider != null)
                 {
                     _expSlider.maxValue = _lastMaxExp;
@@ -37,6 +43,7 @@ public class PlayerStatusUI : MonoBehaviour
                 }
                 UpdateLevelUI(data.Level);
                 UpdateExpText(_lastCurrentExp, _lastMaxExp);
+                UpdateCoinUI(); // 초기 코인 표시
             }
         }
     }
@@ -47,9 +54,26 @@ public class PlayerStatusUI : MonoBehaviour
         {
             PlayerDataManager.Instance.OnExpChanged -= UpdateExpUI;
             PlayerDataManager.Instance.OnLevelChanged -= UpdateLevelUI;
+
+            // 이벤트 구독 해제
+            EventBus.Unsubscribe(GameEventType.OnInventoryUpdate, UpdateCoinUI);
         }
-        
+
         _expSequence?.Kill();
+    }
+
+    private void UpdateCoinUI()
+    {
+        if (_coinText != null && PlayerDataManager.Instance != null && PlayerDataManager.Instance.NowPlayerData != null)
+        {
+            // 숫자가 커질 수 있으므로 천 단위 콤마(N0) 추가
+            _coinText.text = PlayerDataManager.Instance.NowPlayerData.PlayerCoin.ToString("N0");
+
+            // 코인이 바뀔 때 살짝 커졌다 작아지는 연출 (중첩 방지 로직 추가)
+            _coinText.transform.DOKill(); // 기존 트윈 중단
+            _coinText.transform.localScale = Vector3.one; // 크기 초기화
+            _coinText.transform.DOPunchScale(Vector3.one * 0.1f, 0.2f).SetUpdate(true);
+        }
     }
 
     private void UpdateExpUI(float currentExp, float maxExp)

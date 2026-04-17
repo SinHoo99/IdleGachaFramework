@@ -11,6 +11,7 @@ public class PoolManager : Singleton<PoolManager>
     [SerializeField] private PoolObject _damageTextPrefab;
     [SerializeField] private PoolObject _hitEffectPrefab;
     [SerializeField] private PoolObject _enemyPrefab;
+    [SerializeField] private PoolObject _coinPrefab;
 
     #region 오브젝트 풀 초기화 로직
     /// <summary>
@@ -81,6 +82,11 @@ public class PoolManager : Singleton<PoolManager>
         if (_hitEffectPrefab != null)
         {
             ObjectPool.AddObjectPool(Tag.HitEffect, _hitEffectPrefab, 10);
+        }
+
+        if (_coinPrefab != null)
+        {
+            ObjectPool.AddObjectPool(Tag.Coin, _coinPrefab, 30);
         }
 
         Debug.Log($"[PoolManager] 초기화 완료. 유닛: {unitPoolsCreated}, 적: {enemyPoolsCreated}");

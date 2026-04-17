@@ -94,30 +94,49 @@ public class Enemy : PoolObject, IDamageable
 
     private void HandleDeath()
     {
-        if (SpawnManager.Instance != null)
-        {
-            SpawnManager.Instance.UnregisterEnemy(this);
-        }
+        UpdateGameSystems();
+        ProcessBossSpecificLogic();
+        SpawnDeathRewards();
+        
+        ReturnToPool();
+    }
 
-        if (StageManager.Instance != null)
-        {
-            StageManager.Instance.OnEnemyDefeated();
-        }
+    private void UpdateGameSystems()
+    {
+        if (SpawnManager.Instance != null) SpawnManager.Instance.UnregisterEnemy(this);
+        if (StageManager.Instance != null) StageManager.Instance.OnEnemyDefeated();
+    }
 
-        // 직접 경험치를 주지 않고 이벤트를 발행 (StageManager나 별도 매니저에서 처리)
+    private void ProcessBossSpecificLogic()
+    {
+        if (_type != EntityType.Boss) return;
+
+        var bossUI = FindObjectOfType<HealthStatusUI>();
+        if (bossUI != null) bossUI.HideSlider();
+    }
+
+    private void SpawnDeathRewards()
+    {
+        // 경험치 보상 이벤트 발행
         if (_enemyData != null)
         {
             EventBus<EnemyData>.Publish(GameEventType.OnRewardEarned, _enemyData);
         }
 
-        if (_type == EntityType.Boss)
-        {
-            // 보스 UI 숨기기
-            var bossUI = FindObjectOfType<HealthStatusUI>();
-            if (bossUI != null) bossUI.HideSlider();
-        }
+        SpawnCoins();
+    }
 
-        ReturnToPool();
+    private void SpawnCoins()
+    {
+        if (PoolManager.Instance == null) return;
+
+        // 적 종류에 따라 코인 개수 조절 (일반 1~3, 보스 10~20)
+        int coinCount = (_type == EntityType.Boss) ? Random.Range(10, 21) : Random.Range(1, 4);
+
+        for (int i = 0; i < coinCount; i++)
+        {
+            PoolManager.Instance.Spawn<Coin>(Tag.Coin, transform.position, Quaternion.identity);
+        }
     }
 
     public void TakeDamage(float damage, Vector3 hitPosition)

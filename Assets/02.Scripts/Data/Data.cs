@@ -176,12 +176,49 @@ public class SerializableQuaternion
 }
 #endregion
 
+#region Equipment Data
+public enum EquipmentType
+{
+    Weapon,   // Damage
+    Armor,    // MaxHP
+    Glove,    // AttackSpeed
+    Ring      // AttackRange
+}
+
+public enum EquipmentGrade
+{
+    Common,
+    Rare,
+    Epic,
+    Legendary
+}
+
+[Serializable]
+public class EquipmentInstance
+{
+    public EquipmentType Type;
+    public EquipmentGrade Grade = EquipmentGrade.Common;
+    public int Level = 1;
+    public float PityBonus = 0f; // 등급업 실패 시 누적되는 추가 확률
+
+    public EquipmentInstance(EquipmentType type)
+    {
+        Type = type;
+        Grade = EquipmentGrade.Common;
+        Level = 1;
+        PityBonus = 0f;
+    }
+}
+#endregion
+
 #region Player Data
 [Serializable]
 public class PlayerData
 {
     public Dictionary<string, CollectedUnitData> Inventory = new();
     public Dictionary<string, bool> DictionaryCollection = new();
+    public Dictionary<EquipmentType, EquipmentInstance> EquippedItems = new(); // 장착 중인 장비
+
     public DateTime LastCollectedTime;
     public int PlayerCoin = 1000;
 
@@ -201,6 +238,7 @@ public class PlayerData
         set => _multiShotCount = Mathf.Clamp(value, 1, 3);
     }
 }
+#endregion
 
 [Serializable]
 public class CollectedUnitData
@@ -208,7 +246,7 @@ public class CollectedUnitData
     public string ID;     // 유닛 ID (문자열 기반)
     public int Amount;      // 수집된 수량
 }
-#endregion
+
 
 #region Option Data
 [Serializable]
